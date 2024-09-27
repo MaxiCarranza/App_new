@@ -1,0 +1,59 @@
+ERROR:root:Se produjo un error: name 'dias_jobs_frame' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 725, in main
+    actualizar_interfaz()
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 645, in actualizar_interfaz
+    for widget in dias_jobs_frame.winfo_children():
+                  ^^^^^^^^^^^^^^^
+NameError: name 'dias_jobs_frame' is not defined
+
+ERROR:root:Se produjo un error: name 'seleccion_var' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 727, in main
+    actualizar_interfaz()  # Llamar a la función de actualización
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 651, in actualizar_interfaz
+    tk.Radiobutton(dias_jobs_frame, text="Seleccionar todos los días", variable=seleccion_var, value="todos_los_dias",
+                                                                                ^^^^^^^^^^^^^
+NameError: name 'seleccion_var' is not defined
+
+ERROR:root:Se produjo un error: name 'dias_jobs_frame' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 712, in main
+    titulo_label = tk.Label(dias_jobs_frame, text="Generador Mallas Reliabity", font=("Arial", 16, "bold"),
+                            ^^^^^^^^^^^^^^^
+NameError: name 'dias_jobs_frame' is not defined
+
+ERROR:root:Se produjo un error: name 'dias_jobs_frame' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 712, in main
+    titulo_label = tk.Label(dias_jobs_frame, text="Generador Mallas Reliabity", font=("Arial", 16, "bold"),
+                            ^^^^^^^^^^^^^^^
+NameError: name 'dias_jobs_frame' is not defined
+
+ERROR:root:Se produjo un error: name 'lupa_photo' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 747, in main
+    actualizar_interfaz()  # Llamar a la función de actualización
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 692, in actualizar_interfaz
+    interfaz_seleccion_job()
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 611, in interfaz_seleccion_job
+    label_lupa = tk.Label(dias_jobs_frame, image=lupa_photo, bg="white")
+                                                 ^^^^^^^^^^
+NameError: name 'lupa_photo' is not defined
+
+ERROR:root:Se produjo un error: can only concatenate str (not "int") to str
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 770, in main
+    actualizar_interfaz()  # Llamar a la función de actualización
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 715, in actualizar_interfaz
+    interfaz_seleccion_job()
+  File "D:\Documents\BBVA\generador_mallas\Sources\main.py", line 646, in interfaz_seleccion_job
+    for job in job_listbox:
+  File "C:\Users\Maxi\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1708, in cget
+    return self.tk.call(self._w, 'cget', '-' + key)
+                                         ~~~~^~~~~
+TypeError: can only concatenate str (not "int") to str
+
