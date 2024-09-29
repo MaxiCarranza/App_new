@@ -302,11 +302,18 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     for qua in job.findall('.//QUANTITATIVE'):
                         modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        modified_qua_attrib['NAME'] = "ARD"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+                        if modified_qua_attrib['NAME'] == "ARD":
+                            pass
+                        else:
+                            modified_qua_attrib['NAME'] = "ARD"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
                         modified_qua_attrib_tmp = qua.attrib.copy()
-                        modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
+                            pass
+                        else:
+                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
 
                     sub_application = new_job.get('SUB_APPLICATION')
                     if sub_application == "DATIO-AR-CCR":
@@ -335,6 +342,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     jobs_creados.append((new_job_name,original_job_name,current_date.strftime('%Y%m%d')))
                     root.find('.//FOLDER').append(new_job)
+
             elif fechas_pross == "todos_los_dias":
                 for job in jobs_to_duplicate:
                     original_job_name = job.get('JOBNAME')
@@ -371,11 +379,18 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     for qua in job.findall('.//QUANTITATIVE'):
                         modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        modified_qua_attrib['NAME'] = "ARD"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+                        if modified_qua_attrib['NAME'] == "ARD":
+                            pass
+                        else:
+                            modified_qua_attrib['NAME'] = "ARD"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
                         modified_qua_attrib_tmp = qua.attrib.copy()
-                        modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
+                            pass
+                        else:
+                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
 
                     sub_application = new_job.get('SUB_APPLICATION')
                     if sub_application == "DATIO-AR-CCR":
@@ -445,11 +460,18 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     for qua in job.findall('.//QUANTITATIVE'):
                         modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        modified_qua_attrib['NAME'] = "ARD"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+                        if modified_qua_attrib['NAME'] == "ARD":
+                            pass
+                        else:
+                            modified_qua_attrib['NAME'] = "ARD"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
                         modified_qua_attrib_tmp = qua.attrib.copy()
-                        modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
+                            pass
+                        else:
+                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
 
                     sub_application = new_job.get('SUB_APPLICATION')
                     if sub_application == "DATIO-AR-CCR":
