@@ -302,11 +302,18 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     for qua in job.findall('.//QUANTITATIVE'):
                         modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        modified_qua_attrib['NAME'] = "ARD"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+                        if modified_qua_attrib['NAME'] == "ARD":
+                            pass
+                        else:
+                            modified_qua_attrib['NAME'] = "ARD"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
                         modified_qua_attrib_tmp = qua.attrib.copy()
-                        modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
+                            pass
+                        else:
+                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
 
                     sub_application = new_job.get('SUB_APPLICATION')
                     if sub_application == "DATIO-AR-CCR":
@@ -335,6 +342,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     jobs_creados.append((new_job_name,original_job_name,current_date.strftime('%Y%m%d')))
                     root.find('.//FOLDER').append(new_job)
+
             elif fechas_pross == "todos_los_dias":
                 for job in jobs_to_duplicate:
                     original_job_name = job.get('JOBNAME')
@@ -371,11 +379,18 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     for qua in job.findall('.//QUANTITATIVE'):
                         modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        modified_qua_attrib['NAME'] = "ARD"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+                        if modified_qua_attrib['NAME'] == "ARD":
+                            pass
+                        else:
+                            modified_qua_attrib['NAME'] = "ARD"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
                         modified_qua_attrib_tmp = qua.attrib.copy()
-                        modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
+                            pass
+                        else:
+                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
 
                     sub_application = new_job.get('SUB_APPLICATION')
                     if sub_application == "DATIO-AR-CCR":
@@ -445,11 +460,18 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
                     for qua in job.findall('.//QUANTITATIVE'):
                         modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        modified_qua_attrib['NAME'] = "ARD"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+                        if modified_qua_attrib['NAME'] == "ARD":
+                            pass
+                        else:
+                            modified_qua_attrib['NAME'] = "ARD"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
                         modified_qua_attrib_tmp = qua.attrib.copy()
-                        modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
+                            pass
+                        else:
+                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
+                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
 
                     sub_application = new_job.get('SUB_APPLICATION')
                     if sub_application == "DATIO-AR-CCR":
@@ -594,6 +616,12 @@ def get_next_valid_date(fecha):
         fecha += timedelta(days=1)
     return fecha
 
+def update_selected_jobs_listbox():
+    global selected_jobs_global,selected_jobs_listbox
+    selected_jobs_listbox.delete(0, tk.END)
+    for job in selected_jobs_global:
+        selected_jobs_listbox.insert(tk.END, job)
+
 def filtrar_jobs(event):
     global jobs, attached_file_path,selected_jobs_global
     """Función que filtra jobs basados en lo que el usuario escribe en el Entry"""
@@ -608,26 +636,29 @@ def filtrar_jobs(event):
     # Limpiar el listbox antes de actualizarlo con los resultados filtrados
     job_listbox.delete(0, tk.END)
 
-    tree = ET.parse(attached_file_path)
-    root = tree.getroot()
+    try:
+        tree = ET.parse(attached_file_path)
+        root = tree.getroot()
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al leer el archivo XML: {e}")
+        return
 
     jobs = root.findall('.//JOB')
-
     job_names_from_xml = [job.get('JOBNAME') for job in jobs]
 
     if not search_term:
         for job_name in job_names_from_xml:
             job_listbox.insert(tk.END, job_name)
     else:
-        # Filtrar los jobs que contienen el término de búsqueda
         for job_name in job_names_from_xml:
             if search_term in job_name.lower():
                 job_listbox.insert(tk.END, job_name)
 
-    # Volver a seleccionar los trabajos que estaban seleccionados previamente
     for i, job_name in enumerate(job_listbox.get(0, tk.END)):
         if job_name in selected_jobs_global:
             job_listbox.selection_set(i)
+
+    update_selected_jobs_listbox()
 
 def on_job_click(event):
     global selected_jobs_global
@@ -642,14 +673,14 @@ def on_job_click(event):
         selected_jobs_global.add(clicked_job)
         job_listbox.selection_set(clicked_index)
 
+    update_selected_jobs_listbox()
+
 def on_entry_click(event):
-    """Función que elimina el placeholder al hacer clic"""
     if entry_buscar.get() == "Seleccione jobs":
         entry_buscar.delete(0, tk.END)  # Eliminar el texto
         entry_buscar.config(fg='black')
 
 def on_focusout(event):
-    """Función que vuelve a mostrar el placeholder si el campo está vacío"""
     if entry_buscar.get() == "":
         entry_buscar.insert(0, "Seleccione jobs")
         entry_buscar.config(fg='grey')
@@ -661,7 +692,7 @@ def validate_email(email):
         return False
 
 def interfaz_seleccion_job():
-    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs
+    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs,selected_jobs_listbox
 
     tk.Label(dias_jobs_frame, text="Mail:", font=("Arial", 12), bg="white").grid(row=3, column=2, sticky="e", pady=5,
                                                                                  padx=5)
@@ -688,24 +719,32 @@ def interfaz_seleccion_job():
     entry_buscar.bind('<FocusIn>', on_entry_click)
     entry_buscar.bind('<FocusOut>', on_focusout)
 
-
     scrollbar = tk.Scrollbar(dias_jobs_frame, orient="vertical")
     job_listbox = tk.Listbox(dias_jobs_frame, selectmode="multiple", font=("Arial", 12), width=50, height=7,
                              yscrollcommand=scrollbar.set)
     job_listbox.grid(row=7, column=2, columnspan=2, pady=5, padx=2)
     scrollbar.config(command=job_listbox.yview)
-    scrollbar.grid(row=7, column=4, sticky="ns", pady=5)
+    scrollbar.grid(row=7, column=4, sticky="ns", padx=(0, 30) ,pady=5)
 
+    selected_jobs_label = tk.Label(dias_jobs_frame, text="Jobs Seleccionados", font=("Arial", 12), bg="white")
+    selected_jobs_label.grid(row=6, column=1, padx=5, pady=5)
+    scrollbar_selec = tk.Scrollbar(dias_jobs_frame, orient="vertical")
+    selected_jobs_listbox = tk.Listbox(dias_jobs_frame, selectmode="multiple", font=("Arial", 12), width=40, height=7,yscrollcommand=scrollbar_selec.set)
+    selected_jobs_listbox.grid(row=7, column=1, padx=(0, 40), pady=2)
+    scrollbar_selec.config(command=selected_jobs_listbox.yview)
+    scrollbar_selec.grid(row=7, column=0, sticky="ns", padx=(60, 0), pady=5)
+
+    # Vincular eventos a los Listbox
     entry_buscar.bind('<KeyRelease>', filtrar_jobs)
-    job_listbox.bind('<Button-1>', on_job_click)
+    job_listbox.bind('<ButtonRelease-1>', on_job_click)
 
     confirm_button = tk.Button(dias_jobs_frame, text="Confirmar Selección", command=confirmar_seleccion,
-                               font=("Arial", 12))
-    confirm_button.grid(row=8, column=2, columnspan=2, pady=5)
+                               font=("Arial", 12),width=20)
+    confirm_button.grid(row=8, column=1, columnspan=2,padx=(200, 0), pady=8)
 
     # Botón para descargar la malla temporal modificada
-    save_button = tk.Button(dias_jobs_frame, text="Descargar Temporal", command=save_job, font=("Arial", 12))
-    save_button.grid(row=9, column=2, columnspan=2, pady=5)
+    save_button = tk.Button(dias_jobs_frame, text="Descargar Temporal", command=save_job, font=("Arial", 12),width=20)
+    save_button.grid(row=9, column=1, columnspan=2, padx=(200, 0),pady=8)
 
 def guardar_fecha(fecha):
     global fechas_seleccionadas
