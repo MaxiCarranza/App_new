@@ -515,7 +515,6 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
         deja_marca = job_agregar_marcas[i]
         recibe_marca = job_agregar_marcas[i + 1]
 
-
         for job in root.findall('.//JOB'):
             if job.get('JOBNAME') == deja_marca:
                 marca_mofied_attrib = {
