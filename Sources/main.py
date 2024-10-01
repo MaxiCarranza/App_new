@@ -560,6 +560,7 @@ def select_attached_file():
         jobs = root.findall('.//JOB')
 
         job_listbox.delete(0, tk.END)
+        selected_jobs_listbox.delete(0, tk.END)
 
         job_names_from_xml = [job.get('JOBNAME') for job in jobs]
 
