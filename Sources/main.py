@@ -51,6 +51,8 @@ import pickle
 import shutil
 import re
 import tkinter as tk
+from pandas.tseries.offsets import BDay
+from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
 from Sources.funciones_control_m import ControlmDigrafo
 from tkinter import ttk, messagebox, filedialog, simpledialog, Listbox, Scrollbar
@@ -168,6 +170,87 @@ def ordenar_jobs_creados_por_dependencias(dependencias, jobs_creados):
 
     return jobs_creados_ordenados
 
+##################FUNCIONES NUEVAS ###############################
+
+def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manual=None):
+    """
+    Genera un rango optimizado de fechas basadas en la opción fechas_pross y fechas_manual.
+    """
+    if fechas_manual:
+        # Si se proporciona fechas_manual, usarla en lugar de generar un rango
+        return [datetime.strptime(fecha, "%Y-%m-%d").date() for fecha in fechas_manual]
+
+    # Si fechas_pross es "dias_habiles", generar solo días hábiles
+    if fechas_pross == "dias_habiles":
+        return pd.date_range(start=current_date, end=end_date, freq=BDay()).to_pydatetime().tolist()
+
+    # Por defecto, retornar todas las fechas en el rango
+    return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
+
+def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_prefix, random_number,random_job_suffix,job_suffix_count):
+    """
+    Procesa y duplica un job para la fecha dada, aplicando las modificaciones necesarias.
+    """
+    original_job_name = job.get('JOBNAME')
+    new_job = ET.Element("JOB", job.attrib)
+    new_job.attrib = job.attrib.copy()
+
+    new_job_name = original_job_name[:-4] + f"{job_suffix_count:04}"
+    new_job.set('JOBNAME', new_job_name)
+
+    # Modificación de variables
+    for var in job.findall('.//VARIABLE'):
+        modified_var_attrib = var.attrib.copy()
+        if '%%$ODATE' in modified_var_attrib.get('VALUE', ''):
+            modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%$ODATE',
+                                                                                current_date.strftime('%Y%m%d'))
+        if '%%MAIL' in modified_var_attrib.get('NAME', ''):
+            modified_var_attrib['NAME'] = modified_var_attrib['NAME'].replace('%%MAIL', mail_personal)
+        ET.SubElement(new_job, "VARIABLE", modified_var_attrib)
+
+    # Modificación de ON
+    for on_element in job.findall('.//ON'):
+        new_on = ET.SubElement(new_job, "ON", {k: (v if v is not None else '') for k, v in on_element.attrib.items()})
+        for sub_element in on_element:
+            new_sub_element = ET.SubElement(new_on, sub_element.tag, sub_element.attrib)
+            new_sub_element.text = sub_element.text
+            if sub_element.get('CC_DEST'):
+                new_sub_element.set('CC_DEST', mail_personal)
+            if 'Ok' in sub_element.get('SUBJECT', ''):
+                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Ok', caso_de_uso))
+            if 'Cancelo' in sub_element.get('SUBJECT', ''):
+                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Cancelo', caso_de_uso))
+
+    # Modificación de QUANTITATIVE
+    for qua in job.findall('.//QUANTITATIVE'):
+        modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
+        if modified_qua_attrib['NAME'] == "ARD":
+            pass
+        else:
+            modified_qua_attrib['NAME'] = "ARD"
+            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
+        modified_qua_attrib_tmp = qua.attrib.copy()
+        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
+            pass
+        else:
+            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
+            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+
+    # Ajustes finales
+    new_job.set('SUB_APPLICATION', "DATIO-AR-P")
+    new_parent_folder = f"CR-AR{app_prefix}TMP-T{random_number}"
+    new_job.set('PARENT_FOLDER', new_parent_folder)
+    new_job.set('MAXWAIT', "0")
+    scheduling = new_job.attrib.pop('DAYSCAL', None)
+    scheduling_calen = new_job.attrib.pop('DAYS', None)
+    create_user_by = new_job.attrib.pop('CREATED_BY', None)
+
+    job_suffix_count +=1
+    return (new_job, current_date, original_job_name,job_suffix_count)
+
+##################FUNCIONES NUEVAS ###############################
+
 def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross, fechas_manual=None):
     global new_filename, xml_buffer
     """
@@ -257,251 +340,38 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
         if job_name not in selected_jobs:
             root.find('.//FOLDER').remove(job)
 
+    fechas_a_iterar = obtener_fechas_optimizado(start_date, end_date, fechas_pross, fechas_manual)
+
     jobs_to_duplicate = [job for job in root.findall('.//JOB') if job.get('JOBNAME') in selected_jobs]
 
     random_job_suffix = f"9{random.randint(1, 100):03}"
     job_suffix_count = int(random_job_suffix)
 
-    i = 0
+    with ProcessPoolExecutor() as executor:
+        futures = []
+        for current_date in fechas_a_iterar:
+            for job in jobs:
+                if job.get('JOBNAME') in selected_jobs:
+                    futures.append(
+                        executor.submit(
+                            procesar_job_para_fecha,
+                            job,
+                            current_date,
+                            mail_personal,
+                            caso_de_uso,
+                            app_prefix,
+                            random_number,
+                            random_job_suffix,
+                            job_suffix_count
+                        )
+                    )
+                    job_suffix_count+=1
 
-    if fechas_manual is None:
-        while current_date <= end_date:
-            if es_fecha_valida(current_date) and fechas_pross == "dias_habiles":
-                for job in jobs_to_duplicate:
-                    original_job_name = job.get('JOBNAME')
 
-                    new_job = ET.Element("JOB", job.attrib)
-                    new_job.attrib = job.attrib.copy()
-
-                    new_job_name = original_job_name[:-4] + f"{job_suffix_count:04}"
-                    new_job.set('JOBNAME', new_job_name)
-                    job_suffix_count += 1
-
-                    for var in job.findall('.//VARIABLE'):
-                        modified_var_attrib = var.attrib.copy()
-                        if '%%$ODATE' in modified_var_attrib.get('VALUE', ''):
-                            modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%$ODATE',
-                                                                                                current_date.strftime(
-                                                                                                    '%Y%m%d'))
-                        if '%%MAIL' in modified_var_attrib.get('NAME', ''):
-                            modified_var_attrib['NAME'] = modified_var_attrib['NAME'].replace('%%MAIL', mail_personal)
-                        new_var = ET.SubElement(new_job, "VARIABLE", modified_var_attrib)
-                        new_var.text = var.text
-
-                    for on_element in job.findall('.//ON'):
-                        new_on = ET.SubElement(new_job, "ON", {k: (v if v is not None else '') for k, v in on_element.attrib.items()})
-                        for sub_element in on_element:
-                            new_sub_element = ET.SubElement(new_on, sub_element.tag, sub_element.attrib)
-                            new_sub_element.text = sub_element.text
-                            if sub_element.get('CC_DEST'):
-                                new_sub_element.set('CC_DEST', mail_personal)
-                            if 'Ok' in sub_element.get('SUBJECT', ''):
-                                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Ok', caso_de_uso))
-                            if 'Cancelo' in sub_element.get('SUBJECT', ''):
-                                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Cancelo', caso_de_uso))
-
-                    for qua in job.findall('.//QUANTITATIVE'):
-                        modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        if modified_qua_attrib['NAME'] == "ARD":
-                            pass
-                        else:
-                            modified_qua_attrib['NAME'] = "ARD"
-                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
-
-                        modified_qua_attrib_tmp = qua.attrib.copy()
-                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
-                            pass
-                        else:
-                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
-
-                    sub_application = new_job.get('SUB_APPLICATION')
-                    if sub_application == "DATIO-AR-CCR":
-                        new_job.set('SUB_APPLICATION', "DATIO-AR-P")
-
-                    parent_folder = new_job.get('PARENT_FOLDER')
-                    if parent_folder:
-                        new_parent_folder = f"CR-AR{app_prefix}TMP-T{random_number}"
-                        new_job.set('PARENT_FOLDER', new_parent_folder)
-
-                    max_wait = new_job.get('MAXWAIT')
-                    if max_wait != "0":
-                        new_job.set('MAXWAIT', "0")
-
-                    scheduling = new_job.get('DAYSCAL')
-                    if scheduling:
-                        scheduling = new_job.attrib.pop('DAYSCAL', None)
-
-                    scheduling_calen = new_job.get('DAYS')
-                    if scheduling_calen:
-                        scheduling_calen = new_job.attrib.pop('DAYS', None)
-
-                    create_user_by = new_job.get('CREATED_BY')
-                    if create_user_by:
-                        create_user_by = new_job.attrib.pop('CREATED_BY', None)
-
-                    jobs_creados.append((new_job_name,original_job_name,current_date.strftime('%Y%m%d')))
-                    root.find('.//FOLDER').append(new_job)
-
-            elif fechas_pross == "todos_los_dias":
-                for job in jobs_to_duplicate:
-                    original_job_name = job.get('JOBNAME')
-
-                    new_job = ET.Element("JOB", job.attrib)
-                    new_job.attrib = job.attrib.copy()
-
-                    new_job_name = original_job_name[:-4] + f"{job_suffix_count:04}"
-                    new_job.set('JOBNAME', new_job_name)
-                    job_suffix_count += 1
-
-                    for var in job.findall('.//VARIABLE'):
-                        modified_var_attrib = var.attrib.copy()
-                        if '%%$ODATE' in modified_var_attrib.get('VALUE', ''):
-                            modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%$ODATE',
-                                                                                                current_date.strftime(
-                                                                                                    '%Y%m%d'))
-                        if '%%MAIL' in modified_var_attrib.get('NAME', ''):
-                            modified_var_attrib['NAME'] = modified_var_attrib['NAME'].replace('%%MAIL', mail_personal)
-                        new_var = ET.SubElement(new_job, "VARIABLE", modified_var_attrib)
-                        new_var.text = var.text
-
-                    for on_element in job.findall('.//ON'):
-                        new_on = ET.SubElement(new_job, "ON", {k: (v if v is not None else '') for k, v in on_element.attrib.items()})
-                        for sub_element in on_element:
-                            new_sub_element = ET.SubElement(new_on, sub_element.tag, sub_element.attrib)
-                            new_sub_element.text = sub_element.text
-                            if sub_element.get('CC_DEST'):
-                                new_sub_element.set('CC_DEST', mail_personal)
-                            if 'Ok' in sub_element.get('SUBJECT', ''):
-                                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Ok', caso_de_uso))
-                            if 'Cancelo' in sub_element.get('SUBJECT', ''):
-                                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Cancelo', caso_de_uso))
-
-                    for qua in job.findall('.//QUANTITATIVE'):
-                        modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        if modified_qua_attrib['NAME'] == "ARD":
-                            pass
-                        else:
-                            modified_qua_attrib['NAME'] = "ARD"
-                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
-
-                        modified_qua_attrib_tmp = qua.attrib.copy()
-                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
-                            pass
-                        else:
-                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
-
-                    sub_application = new_job.get('SUB_APPLICATION')
-                    if sub_application == "DATIO-AR-CCR":
-                        new_job.set('SUB_APPLICATION', "DATIO-AR-P")
-
-                    parent_folder = new_job.get('PARENT_FOLDER')
-                    if parent_folder:
-                        new_parent_folder = f"CR-AR{app_prefix}TMP-T{random_number}"
-                        new_job.set('PARENT_FOLDER', new_parent_folder)
-
-                    max_wait = new_job.get('MAXWAIT')
-                    if max_wait != "0":
-                        new_job.set('MAXWAIT', "0")
-
-                    scheduling = new_job.get('DAYSCAL')
-                    if scheduling:
-                        scheduling = new_job.attrib.pop('DAYSCAL', None)
-
-                    scheduling_calen = new_job.get('DAYS')
-                    if scheduling_calen:
-                        scheduling_calen = new_job.attrib.pop('DAYS', None)
-
-                    create_user_by = new_job.get('CREATED_BY')
-                    if create_user_by:
-                        create_user_by = new_job.attrib.pop('CREATED_BY', None)
-
-                    jobs_creados.append((new_job_name,original_job_name,current_date.strftime('%Y%m%d')))
-                    root.find('.//FOLDER').append(new_job)
-            current_date += timedelta(days=1)
-
-    elif fechas_manual:
-        while i < len(fechas_manual):
-            current_date = datetime.strptime(fechas_manual[i], "%Y-%m-%d").date()
-            if fechas_pross == "carga_manual":
-                for job in jobs_to_duplicate:
-                    original_job_name = job.get('JOBNAME')
-
-                    new_job = ET.Element("JOB", job.attrib)
-                    new_job.attrib = job.attrib.copy()
-
-                    new_job_name = original_job_name[:-4] + f"{job_suffix_count:04}"
-                    new_job.set('JOBNAME', new_job_name)
-                    job_suffix_count += 1
-
-                    for var in job.findall('.//VARIABLE'):
-                        modified_var_attrib = var.attrib.copy()
-                        if '%%$ODATE' in modified_var_attrib.get('VALUE', ''):
-                            modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%$ODATE',
-                                                                                                current_date.strftime(
-                                                                                                    '%Y%m%d'))
-                        if '%%MAIL' in modified_var_attrib.get('NAME', ''):
-                            modified_var_attrib['NAME'] = modified_var_attrib['NAME'].replace('%%MAIL', mail_personal)
-                        new_var = ET.SubElement(new_job, "VARIABLE", modified_var_attrib)
-                        new_var.text = var.text
-
-                    for on_element in job.findall('.//ON'):
-                        new_on = ET.SubElement(new_job, "ON", {k: (v if v is not None else '') for k, v in on_element.attrib.items()})
-                        for sub_element in on_element:
-                            new_sub_element = ET.SubElement(new_on, sub_element.tag, sub_element.attrib)
-                            new_sub_element.text = sub_element.text
-                            if sub_element.get('CC_DEST'):
-                                new_sub_element.set('CC_DEST', mail_personal)
-                            if 'Ok' in sub_element.get('SUBJECT', ''):
-                                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Ok', caso_de_uso))
-                            if 'Cancelo' in sub_element.get('SUBJECT', ''):
-                                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Cancelo', caso_de_uso))
-
-                    for qua in job.findall('.//QUANTITATIVE'):
-                        modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-                        if modified_qua_attrib['NAME'] == "ARD":
-                            pass
-                        else:
-                            modified_qua_attrib['NAME'] = "ARD"
-                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
-
-                        modified_qua_attrib_tmp = qua.attrib.copy()
-                        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
-                            pass
-                        else:
-                            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-                            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
-
-                    sub_application = new_job.get('SUB_APPLICATION')
-                    if sub_application == "DATIO-AR-CCR":
-                        new_job.set('SUB_APPLICATION', "DATIO-AR-P")
-
-                    parent_folder = new_job.get('PARENT_FOLDER')
-                    if parent_folder:
-                        new_parent_folder = f"CR-AR{app_prefix}TMP-T{random_number}"
-                        new_job.set('PARENT_FOLDER', new_parent_folder)
-
-                    max_wait = new_job.get('MAXWAIT')
-                    if max_wait != "0":
-                        new_job.set('MAXWAIT', "0")
-
-                    scheduling = new_job.get('DAYSCAL')
-                    if scheduling:
-                        scheduling = new_job.attrib.pop('DAYSCAL', None)
-
-                    scheduling_calen = new_job.get('DAYS')
-                    if scheduling_calen:
-                        scheduling_calen = new_job.attrib.pop('DAYS', None)
-
-                    create_user_by = new_job.get('CREATED_BY')
-                    if create_user_by:
-                        create_user_by = new_job.attrib.pop('CREATED_BY', None)
-
-                    jobs_creados.append((new_job_name,original_job_name,current_date.strftime('%Y%m%d')))
-                    root.find('.//FOLDER').append(new_job)
-        i += 1
-
+        for future in futures:
+            new_job, fecha, original_job_name, job_suffix_count = future.result()
+            root.find('.//FOLDER').append(new_job)
+            jobs_creados.append((new_job.get('JOBNAME'), original_job_name, fecha.strftime('%Y%m%d')))
 
     for job in jobs_to_duplicate:
         root.find('.//FOLDER').remove(job)
@@ -584,19 +454,16 @@ def save_job():
         messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
 
 def confirmar_seleccion():
-    global modified_file_path
-    global caso_uso_var
-    global mail_entry
-    global start_date_entry
-    global end_date_entry
+    global modified_file_path,selected_jobs_listbox, caso_uso_var , mail_entry, start_date_entry, end_date_entry
 
     email = mail_entry.get()
     if not validate_email(email):
         messagebox.showerror("Mail inválido", "Por favor, ingrese un Mail válido.")
         return
     # Obtener los jobs seleccionados
-    selected_indices = job_listbox.curselection()
-    selected_jobs = [job_listbox.get(i) for i in selected_indices]
+    selected_indices = job_listbox.curselection() ##Revisar 03/10 solo selecciona los que se ve sin filtrar en el primer list_box
+    selected_jobs = [selected_jobs_listbox.get(i) for i in selected_indices]
+
 
     # Llamar a la función modificar_malla con los jobs seleccionados
     if selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() != "carga_manual":
