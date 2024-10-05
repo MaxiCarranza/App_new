@@ -51,6 +51,8 @@ import pickle
 import shutil
 import re
 import tkinter as tk
+
+from numpy.ma.core import indices
 from pandas.tseries.offsets import BDay
 from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
@@ -204,8 +206,8 @@ def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_p
         if '%%$ODATE' in modified_var_attrib.get('VALUE', ''):
             modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%$ODATE',
                                                                                 current_date.strftime('%Y%m%d'))
-        if '%%MAIL' in modified_var_attrib.get('NAME', ''):
-            modified_var_attrib['NAME'] = modified_var_attrib['NAME'].replace('%%MAIL', mail_personal)
+        if '%%MAIL' in modified_var_attrib.get('VALUE', ''):
+            modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%MAIL', mail_personal)
         ET.SubElement(new_job, "VARIABLE", modified_var_attrib)
 
     # Modificación de ON
@@ -222,20 +224,24 @@ def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_p
                 new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Cancelo', caso_de_uso))
 
     # Modificación de QUANTITATIVE
+    qua_existe = {"ARD": False, "ARD-TMP": False}
     for qua in job.findall('.//QUANTITATIVE'):
         modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-        if modified_qua_attrib['NAME'] == "ARD":
-            pass
-        else:
-            modified_qua_attrib['NAME'] = "ARD"
-            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+        qua_name = modified_qua_attrib.get("NAME")
 
-        modified_qua_attrib_tmp = qua.attrib.copy()
-        if modified_qua_attrib_tmp['NAME'] == "ARD-TMP":
-            pass
-        else:
-            modified_qua_attrib_tmp['NAME'] = "ARD-TMP"
-            ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+        if qua_name in qua_existe:
+            qua_existe[qua_name] = True
+
+        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
+    if not qua_existe["ARD"]:
+        modified_qua_attrib = {"QUANT": "1", "ONFAIL": "R", "ONOK": "R", "NAME": "ARD"}
+        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
+
+    if not qua_existe["ARD-TMP"]:
+        modified_qua_attrib_tmp = {"QUANT": "1", "ONFAIL": "R", "ONOK": "R", "NAME": "ARD-TMP"}
+        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
+
 
     # Ajustes finales
     new_job.set('SUB_APPLICATION', "DATIO-AR-P")
@@ -252,7 +258,7 @@ def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_p
 ##################FUNCIONES NUEVAS ###############################
 
 def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross, fechas_manual=None):
-    global new_filename, xml_buffer
+    global new_filename, xml_buffer,new_folder_name
     """
     Función para modificar la malla.
 
@@ -281,6 +287,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
         new_folder_name = f"CR-AR{app_prefix}TMP-T{random_number}"
         root.find('.//FOLDER').set('FOLDER_NAME', new_folder_name)
         root.find('.//FOLDER').set('FOLDER_ORDER_METHOD', "PRUEBAS")
+
     jobs_creados = []
 
     deja_marca = None
@@ -386,38 +393,60 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
         recibe_marca = job_agregar_marcas[i + 1]
 
         for job in root.findall('.//JOB'):
-            if job.get('JOBNAME') == deja_marca:
-                marca_mofied_attrib = {
-                    'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                    'ODATE': "ODAT",
-                    'SIGN': "+"
-                }
-                ET.SubElement(job, "OUTCOND", marca_mofied_attrib)
+            if len(jobs_creados) <= 30:
+                if job.get('JOBNAME') == deja_marca:
+                    marca_mofied_attrib = {
+                        'NAME': f"{deja_marca}-TO-{recibe_marca}",
+                        'ODATE': "ODAT",
+                        'SIGN': "+"
+                    }
+                    ET.SubElement(job, "OUTCOND", marca_mofied_attrib)
 
-            elif job.get('JOBNAME') == recibe_marca:
-                marca_mofied_attrib = {
-                    'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                    'ODATE': "ODAT",
-                    'SIGN': "-"
-                }
-                ET.SubElement(job, "OUTCOND", marca_mofied_attrib)
-                prere__mofied_attrib = {
-                    'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                    'ODATE': "ODAT",
-                    'AND_OR': "A"
-                }
-                ET.SubElement(job, "INCOND", prere__mofied_attrib)
+                elif job.get('JOBNAME') == recibe_marca:
+                    marca_mofied_attrib = {
+                        'NAME': f"{deja_marca}-TO-{recibe_marca}",
+                        'ODATE': "ODAT",
+                        'SIGN': "-"
+                    }
+                    ET.SubElement(job, "OUTCOND", marca_mofied_attrib)
+                    prere__mofied_attrib = {
+                        'NAME': f"{deja_marca}-TO-{recibe_marca}",
+                        'ODATE': "ODAT",
+                        'AND_OR': "A"
+                    }
+                    ET.SubElement(job, "INCOND", prere__mofied_attrib)
+            else:
+                for on_element in job.findall('.//ON[@STMT="*"][@CODE="OK"]'):
+                    if job.get('JOBNAME') == deja_marca:
+                        order_job = {
+                            'TABLE_NAME': f"{new_folder_name}",
+                            'NAME': f"{recibe_marca}",
+                            'ODATE': "ODAT",
+                            'REMOTE': 'N'
+                        }
+                        ET.SubElement(on_element, "DOFORCEJOB", order_job)
 
+                        marca_mofied_attrib = {
+                            'NAME': f"{deja_marca}-TO-{recibe_marca}",
+                            'ODATE': "ODAT",
+                            'SIGN': "+"
+                        }
+                        ET.SubElement(on_element, "DOCOND", marca_mofied_attrib)
 
-
-    new_filename = f"CR-AR{app_prefix}TMP-T{random_number}.xml"
+                    elif job.get('JOBNAME') == recibe_marca:
+                        prere__mofied_attrib = {
+                            'NAME': f"{deja_marca}-TO-{recibe_marca}",
+                            'ODATE': "ODAT",
+                            'AND_OR': "A"
+                        }
+                        ET.SubElement(job, "INCOND", prere__mofied_attrib)
+    new_filename = f"{new_folder_name}.xml"
     xml_buffer = io.BytesIO()
     tree.write(xml_buffer, encoding='utf-8', xml_declaration=True)
     return new_filename
 
 def select_attached_file():
     global attached_file_path, jobs
-
     attached_file_path = filedialog.askopenfilename(title="Selecciona una malla XML",
                                                     filetypes=[("XML files", "*.xml")])
 
@@ -454,15 +483,15 @@ def save_job():
         messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
 
 def confirmar_seleccion():
-    global modified_file_path,selected_jobs_listbox, caso_uso_var , mail_entry, start_date_entry, end_date_entry
+    global modified_file_path,selected_jobs_listbox, caso_uso_var , mail_entry, start_date_entry, end_date_entry,job_listbox
 
     email = mail_entry.get()
     if not validate_email(email):
         messagebox.showerror("Mail inválido", "Por favor, ingrese un Mail válido.")
         return
-    # Obtener los jobs seleccionados
-    selected_indices = job_listbox.curselection() ##Revisar 03/10 solo selecciona los que se ve sin filtrar en el primer list_box
-    selected_jobs = [selected_jobs_listbox.get(i) for i in selected_indices]
+    #Obtener los jobs seleccionados
+    indices = job_listbox.curselection()
+    selected_jobs = [selected_jobs_listbox.get(i) for i in indices]
 
 
     # Llamar a la función modificar_malla con los jobs seleccionados
@@ -476,6 +505,10 @@ def confirmar_seleccion():
                                              seleccion_var.get(), fechas_seleccionadas)
     elif not caso_uso_var.get() or not mail_entry.get():
         messagebox.showwarning("Advertencia", "Por favor, completar todos los campos.")
+    elif not selected_jobs:
+        messagebox.showwarning("Advertencia", "Por favor, elija al menos un job.")
+    elif not attached_file_path:
+        messagebox.showwarning("Advertencia", "Por favor, adjunte un archivo.")
     else:
         messagebox.showwarning("Advertencia", "Por favor, adjunte un archivo y al menos un job.")
 
@@ -540,6 +573,7 @@ def on_job_click(event):
     else:
         selected_jobs_global.add(clicked_job)
         job_listbox.selection_set(clicked_index)
+
 
     update_selected_jobs_listbox()
 
