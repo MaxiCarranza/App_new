@@ -1,1 +1,2 @@
-from .funciones_control_m import ControlmDigrafo
+
+from .controlm import ControlmDigrafo

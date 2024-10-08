@@ -2,4 +2,4 @@ pandas
 tkcalendar
 requests
 cx_Freeze
-concurrent
+pillow
