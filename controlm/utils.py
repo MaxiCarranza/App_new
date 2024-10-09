@@ -3,7 +3,7 @@ Contiene todas las funciones 'utiles' que se usan a lo largo del proceso. Una fu
 si se presenta algo como código repetido o si se necesita abstraer algo.
 """
 
-from constantes import Carpetas
+from controlm.constantes import Carpetas
 
 from pathlib import Path
 

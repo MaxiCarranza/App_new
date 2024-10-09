@@ -1,18 +1,22 @@
 """
-Modulo de controles a validaciones a realizar sobre la malla. Existen dos tipos:
-    Puntual: Sobre el job de control m(ej: que una marca IN se elimine)
-    General: En toda la malla(ej: Que no haya jobnames duplicados)
+Modulo de controles/validaciones (funciones... R E G L A S D E N E G O C I O) a realizar. Existen dos tipos:
+    - Puntual: Sobre el job de control m (ej: Que el jobname comience con la letra 'A')
+    - General: En toda la malla (ej: Que no haya jobnames duplicados)
+    - Global: A nivel contenedor, es decir, controles que se deben realizar teniendo en cuenta datos de varias mallas a
+        la vez (Ej: Que una marca que agrega un job sea eliminada por otro)
+
+Aquellas que se deben realizar sobre una malla temporal, se prefijarán con "temp_" TODO: Hay una mejor forma ?
 """
+
 import csv
 import re
-import constantes
-import utils
+import controlm.utils as utils
+import controlm.constantes as constantes
 
 from difflib import SequenceMatcher
-from controlm import ControlmJob, ControlmAction, ControlmMarcaOut, ControlmDigrafo, ControlmContainer
-from controlm import ControlmFolder
-from record import ControlRecorder
-from constantes import Regex
+from controlm.structures import ControlmJob, ControlmAction, ControlmMarcaOut, ControlmDigrafo, ControlmContainer, ControlmFolder
+from controlm.record import ControlRecorder, RecorderTmp
+from controlm.constantes import Regex
 
 
 def jobname(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -824,4 +828,30 @@ def cadenas_global(digrafo_global: ControlmDigrafo, contenedor_global: ControlmC
 
 
 def global_marcas(cont: ControlmContainer):
+    """
+    Analiza la validez de todas las marcas de los jobs. Por ej: si una marca es agregada por un job, se valida que esta
+    misma sea esperada y borrada por otro. TODO: implementar
+
+    :param cont:
+    :return:
+    """
     pass
+
+
+def tmp_parametros(malla_tmp: ControlmFolder, recorder: RecorderTmp):
+    """
+
+
+    :param malla_tmp:
+    :param recorder:
+    :return:
+    """
+
+    if malla_tmp.order_method != 'PRUEBAS':
+        recorder.add_general(
+            f"El 'ORDER METHOD' de la malla no es el correcto. Esperado [PRUEBAS], obtenido [{malla_tmp.order_method}]")
+
+    if malla_tmp.datacenter != 'CTM_CTRLMCCR':
+        recorder.add_general(
+            f"El servidor no es el correcto. Valor esperado [CTM_CTRLMCCR], obtenido [{malla_tmp.datacenter}]")
+

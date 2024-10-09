@@ -49,16 +49,17 @@ class Recorder:
     def add_listado(self, key: str, mensaje: str, elementos: [set, list]) -> None:
         """
         Agrega un listado a una key y lo formatea acorde.
-        Ej: Si nos viene [A, B, C] con un mensaje 'hola es un mensaje' con una key 'key_emjeplo', se formateara así:
+        Ej: Si nos viene [A, B, C] con un mensaje 'Los siguientes id fallaron' con una key 'key_emjeplo', se formateara así:
+
         key_ejemplo
-            hola es un mensaje:
+            Los siguientes id fallaron:
                 A
                 B
                 C
 
         :param key: Key que agrupara todos los items
         :param mensaje: Item a ser agregado
-        :param elementos: Lista de elementos que van a estar asociados a una lista
+        :param elementos: Lista de elementos que van a estar asociados a un mensaje
         """
 
         if not mensaje.endswith(':'):
@@ -212,3 +213,75 @@ class ControlRecorder(Recorder):
                     for item in listado_general[1]:
                         file.write(f"\t\t{item}\n")
                     file.write('\n')
+
+            if len(self.info) == 0:
+                file.write("No se detectaron errores\n")
+
+
+class RecorderTmp:
+    """
+    Clase que engloba y registra las validaciones sobre una malla temporal, escribe dichas validaciones en un archivo .log
+    """
+
+    def __init__(self) -> None:
+        self.info = {
+            'INICIAL': [],
+            'GENERAL': []
+        }
+
+    def add_inicial(self, mensaje: str) -> None:
+        mensaje += '\n'
+        self.info['INICIAL'].append(mensaje)
+
+    def add_general(self, mensaje: str) -> None:
+        mensaje += '\n'
+        self.info['GENERAL'].append('\t' + mensaje)
+
+    def add_item(self, key: str, mensaje: str) -> None:
+        mensaje = f"\t{mensaje}\n"
+        try:
+            self.info[key].append(mensaje)
+        except KeyError:
+            self.info[key] = [mensaje]
+
+    def add_listado(self, key: str, mensaje: str, items: set | list) -> None:
+        items = list(items)  # Por si viene un set, que no se pueden acceder por indice
+        if len(items) == 1:
+            mensaje_final = f"\t{mensaje}: [{items[0]}]"
+        else:
+            mensaje_final = f"\t{mensaje}"
+            for item in items:
+                mensaje_final += f"\n\t\t[{item}]"
+        try:
+            self.info[key].append(mensaje_final + '\n')
+        except KeyError:
+            self.info[key] = [mensaje_final + '\n']
+
+    def write_log(self, filename: str) -> None:
+        """Escribe en un .log todos los controles"""
+
+        with open(filename, 'w', encoding='UTF-8') as file:
+
+            # Escribimos los items iniciales
+            items_iniciales = self.info.pop('INICIAL')
+            for item in items_iniciales:
+                file.write(item)
+
+            # Escribimos los items generales, si los hay
+            items_generales = self.info.pop('GENERAL')
+            if len(items_generales) > 0:
+                file.write(f"\nGENERAL\n")
+                for item in items_generales:
+                    file.write(item)
+
+            value: str | list
+            for key, value in self.info.items():
+                file.write(f"\n{key}\n")
+                if isinstance(value, list):
+                    for v in value:
+                        file.write(v)
+                else:
+                    file.write(value)
+
+            if len(self.info) == 0:
+                file.write("No se detectaron errores\n")

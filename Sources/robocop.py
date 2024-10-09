@@ -11,9 +11,13 @@ import datetime
 import os
 import base64
 import time
+import controlm as control
+import controlm as utils
 
 from xml.etree.ElementTree import parse
 from pathlib import Path
+from controlm import ControlRecorder
+from controlm import ControlmContainer, ControlmDigrafo
 
 
 if __name__ == '__main__':
@@ -65,16 +69,16 @@ if __name__ == '__main__':
         for work_job in malla_prod.jobs:
 
             try:
-                Control.jobname(work_job, malla_prod, control_record)
-                Control.application(work_job, malla_prod, control_record)
-                Control.subapp(work_job, malla_prod, control_record)
-                Control.atributos(work_job, malla_prod, control_record)
-                Control.variables(work_job, malla_prod, control_record)
-                Control.marcas_in(work_job, malla_prod, control_record)
-                Control.marcas_out(work_job, malla_prod, control_record)
-                Control.acciones(work_job, malla_prod, control_record)
-                Control.recursos_cuantitativos(work_job, malla_prod, control_record)
-                Control.cadenas(malla_prod, control_record)
+                control.jobname(work_job, malla_prod, control_record)
+                control.application(work_job, malla_prod, control_record)
+                control.subapp(work_job, malla_prod, control_record)
+                control.atributos(work_job, malla_prod, control_record)
+                control.variables(work_job, malla_prod, control_record)
+                control.marcas_in(work_job, malla_prod, control_record)
+                control.marcas_out(work_job, malla_prod, control_record)
+                control.acciones(work_job, malla_prod, control_record)
+                control.recursos_cuantitativos(work_job, malla_prod, control_record)
+                control.cadenas_malla(malla_prod, control_record)
             except Exception as err:
                 msg = f"Ocurrió un error inesperado al realizar controles sobre el job [{work_job.name}] contactar a Tongas"
                 raise Exception(msg) from err
@@ -124,13 +128,13 @@ if __name__ == '__main__':
             cadena_id = str(index).zfill(3)
             for jobname in cadena:
                 job = contenedor.get_job(jobname)
-                csv_writer_cadena_global_nomina.writerow([cadena_id, job.name, job.atributos['PARENT_FOLDER'], Utils.oofstr(job.fase), job.dataproc_id])
+                csv_writer_cadena_global_nomina.writerow([cadena_id, job.name, job.atributos['PARENT_FOLDER'], utils.oofstr(job.fase), job.dataproc_id])
 
             csv_writer_cadena_global_indice.writerow([cadena_id, "|".join([jobname for jobname in cadena]), len(cadena)])
     print("Archivos cadenas globales escritas")
 
     print("Controlando cadena global")
-    Control.cadenas_global(digrafo_global, contenedor)
+    control.cadenas_global(digrafo_global, contenedor)
     print("Finalizando cadena global")
 
     if acumulador_errores:

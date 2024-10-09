@@ -3,13 +3,13 @@ Este módulo informa aquellos items de elementos de un job que difieren en ambas
 nuevas, cuáles se eliminaron y cuáles se modificaron (ABM). Las diferencias las registra un DiffRecorder
 """
 
-import utils
-from constantes import ATRIBUTOS_NO_RELEVANTES
+import controlm.utils as utils
+from controlm.constantes import ATRIBUTOS_NO_RELEVANTES
 
-from controlm import ControlmJob
-from controlm import ControlmAction
+from controlm.structures import ControlmJob
+from controlm.structures import ControlmAction
 
-from record import DiffRecorder
+from controlm.record import DiffRecorder
 
 
 def job_nuevo(job: ControlmJob, df: DiffRecorder):

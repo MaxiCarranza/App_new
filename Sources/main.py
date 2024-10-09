@@ -56,7 +56,7 @@ from numpy.ma.core import indices
 from pandas.tseries.offsets import BDay
 from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
-from Sources.funciones_control_m import ControlmDigrafo
+from controlm.structures import ControlmDigrafo
 from tkinter import ttk, messagebox, filedialog, simpledialog, Listbox, Scrollbar
 from PIL import Image, ImageTk
 from PIL.ImageOps import contain
@@ -72,6 +72,7 @@ selected_jobs_global = set()
 
 REGEX_MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
 
+
 class JobData:
     def __init__(self, name, marcasout=None, marcasin=None):
         self.name = name
@@ -81,6 +82,7 @@ class JobData:
     def __repr__(self):
         return f"JobData(name={self.name}, marcasout={self.marcasout}, marcasin={self.marcasin})"
 
+
 def ruta_absoluta(rel_path):
     if hasattr(sys, 'frozen'):
         base_path = os.path.dirname(sys.executable)
@@ -88,7 +90,9 @@ def ruta_absoluta(rel_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, rel_path)
 
+
 ruta_modelo = ruta_absoluta('model.h5')
+
 
 class JobData:
     def __init__(self, name, marcasout=None, marcasin=None):
@@ -103,10 +107,12 @@ class JobData:
         # Devuelve una lista con los nombres de los prerequisitos (marcasin)
         return [marca.name for marca in self.marcasin]
 
+
 class MarcaOut:
     def __init__(self, name, signo):
         self.name = name
         self.signo = signo
+
 
 def preparar_datos_para_digrafo(jobs):
     job_data = []
@@ -121,6 +127,7 @@ def preparar_datos_para_digrafo(jobs):
 
     return job_data
 
+
 def es_fecha_valida(fecha):
     try:
         response = requests.get(api_url)
@@ -134,6 +141,7 @@ def es_fecha_valida(fecha):
         print(f"Error al consultar la API de feriados: {e}")
         non_chamba_days = set()
     return fecha.weekday() < 5 and fecha not in non_chamba_days
+
 
 def ordenar_jobs_creados_por_dependencias(dependencias, jobs_creados):
     # Agrupar jobs creados por ODATE
@@ -172,6 +180,7 @@ def ordenar_jobs_creados_por_dependencias(dependencias, jobs_creados):
 
     return jobs_creados_ordenados
 
+
 ##################FUNCIONES NUEVAS ###############################
 
 def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manual=None):
@@ -189,7 +198,9 @@ def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manua
     # Por defecto, retornar todas las fechas en el rango
     return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
 
-def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_prefix, random_number,random_job_suffix,job_suffix_count):
+
+def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_prefix, random_number, random_job_suffix,
+                            job_suffix_count):
     """
     Procesa y duplica un job para la fecha dada, aplicando las modificaciones necesarias.
     """
@@ -242,7 +253,6 @@ def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_p
         modified_qua_attrib_tmp = {"QUANT": "1", "ONFAIL": "R", "ONOK": "R", "NAME": "ARD-TMP"}
         ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
 
-
     # Ajustes finales
     new_job.set('SUB_APPLICATION', "DATIO-AR-P")
     new_parent_folder = f"CR-AR{app_prefix}TMP-T{random_number}"
@@ -252,13 +262,15 @@ def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_p
     scheduling_calen = new_job.attrib.pop('DAYS', None)
     create_user_by = new_job.attrib.pop('CREATED_BY', None)
 
-    job_suffix_count +=1
-    return (new_job, current_date, original_job_name,job_suffix_count)
+    job_suffix_count += 1
+    return (new_job, current_date, original_job_name, job_suffix_count)
+
 
 ##################FUNCIONES NUEVAS ###############################
 
-def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross, fechas_manual=None):
-    global new_filename, xml_buffer,new_folder_name
+def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,
+                    fechas_manual=None):
+    global new_filename, xml_buffer, new_folder_name
     """
     Función para modificar la malla.
 
@@ -338,7 +350,6 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
                                     encontrado = True
                                     break
 
-
                 if not encontrado:
                     siguiente_job = None
 
@@ -372,8 +383,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
                             job_suffix_count
                         )
                     )
-                    job_suffix_count+=1
-
+                    job_suffix_count += 1
 
         for future in futures:
             new_job, fecha, original_job_name, job_suffix_count = future.result()
@@ -445,6 +455,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     tree.write(xml_buffer, encoding='utf-8', xml_declaration=True)
     return new_filename
 
+
 def select_attached_file():
     global attached_file_path, jobs
     attached_file_path = filedialog.askopenfilename(title="Selecciona una malla XML",
@@ -454,7 +465,6 @@ def select_attached_file():
 
         tree = ET.parse(attached_file_path)
         root = tree.getroot()
-
 
         jobs = root.findall('.//JOB')
 
@@ -468,8 +478,9 @@ def select_attached_file():
 
         messagebox.showinfo("Éxito", "Archivo adjunto cargado correctamente.")
 
+
 def save_job():
-    global new_filename,xml_buffer
+    global new_filename, xml_buffer
     if not new_filename or not xml_buffer:
         messagebox.showwarning("Advertencia", "No hay malla modificada para descargar o el archivo no existe.")
         return
@@ -482,8 +493,9 @@ def save_job():
             f.write(xml_buffer.getvalue())
         messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
 
+
 def confirmar_seleccion():
-    global modified_file_path,selected_jobs_listbox, caso_uso_var , mail_entry, start_date_entry, end_date_entry,job_listbox
+    global modified_file_path, selected_jobs_listbox, caso_uso_var, mail_entry, start_date_entry, end_date_entry, job_listbox
 
     email = mail_entry.get()
     if not validate_email(email):
@@ -493,13 +505,13 @@ def confirmar_seleccion():
     indices = job_listbox.curselection()
     selected_jobs = [selected_jobs_listbox.get(i) for i in indices]
 
-
     # Llamar a la función modificar_malla con los jobs seleccionados
     if selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() != "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), start_date_entry.get_date(),
-                                             end_date_entry.get_date(), selected_jobs, caso_uso_var.get(),seleccion_var.get(), None)
+                                             end_date_entry.get_date(), selected_jobs, caso_uso_var.get(),
+                                             seleccion_var.get(), None)
         messagebox.showinfo("Éxito", "La malla ha sido modificada y guardada temporalmente.")
-    elif selected_jobs  and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() == "carga_manual":
+    elif selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() == "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), None,
                                              None, selected_jobs, caso_uso_var.get(),
                                              seleccion_var.get(), fechas_seleccionadas)
@@ -512,19 +524,22 @@ def confirmar_seleccion():
     else:
         messagebox.showwarning("Advertencia", "Por favor, adjunte un archivo y al menos un job.")
 
+
 def get_next_valid_date(fecha):
     while not es_fecha_valida(fecha):
         fecha += timedelta(days=1)
     return fecha
 
+
 def update_selected_jobs_listbox():
-    global selected_jobs_global,selected_jobs_listbox
+    global selected_jobs_global, selected_jobs_listbox
     selected_jobs_listbox.delete(0, tk.END)
     for job in selected_jobs_global:
         selected_jobs_listbox.insert(tk.END, job)
 
+
 def filtrar_jobs(event):
-    global jobs, attached_file_path,selected_jobs_global
+    global jobs, attached_file_path, selected_jobs_global
     """Función que filtra jobs basados en lo que el usuario escribe en el Entry"""
     search_term = entry_buscar.get().lower()
 
@@ -561,6 +576,7 @@ def filtrar_jobs(event):
 
     update_selected_jobs_listbox()
 
+
 def on_job_click(event):
     global selected_jobs_global
 
@@ -574,18 +590,20 @@ def on_job_click(event):
         selected_jobs_global.add(clicked_job)
         job_listbox.selection_set(clicked_index)
 
-
     update_selected_jobs_listbox()
+
 
 def on_entry_click(event):
     if entry_buscar.get() == "Seleccione jobs":
         entry_buscar.delete(0, tk.END)  # Eliminar el texto
         entry_buscar.config(fg='black')
 
+
 def on_focusout(event):
     if entry_buscar.get() == "":
         entry_buscar.insert(0, "Seleccione jobs")
         entry_buscar.config(fg='grey')
+
 
 def validate_email(email):
     if re.fullmatch(REGEX_MAILS, email):
@@ -593,8 +611,9 @@ def validate_email(email):
     else:
         return False
 
+
 def interfaz_seleccion_job():
-    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs,selected_jobs_listbox
+    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox
 
     tk.Label(dias_jobs_frame, text="Mail:", font=("Arial", 12), bg="white").grid(row=3, column=2, sticky="e", pady=5,
                                                                                  padx=5)
@@ -626,12 +645,13 @@ def interfaz_seleccion_job():
                              yscrollcommand=scrollbar.set)
     job_listbox.grid(row=7, column=2, columnspan=2, pady=5, padx=2)
     scrollbar.config(command=job_listbox.yview)
-    scrollbar.grid(row=7, column=4, sticky="ns", padx=(0, 30) ,pady=5)
+    scrollbar.grid(row=7, column=4, sticky="ns", padx=(0, 30), pady=5)
 
     selected_jobs_label = tk.Label(dias_jobs_frame, text="Jobs Seleccionados", font=("Arial", 12), bg="white")
     selected_jobs_label.grid(row=6, column=1, padx=5, pady=5)
     scrollbar_selec = tk.Scrollbar(dias_jobs_frame, orient="vertical")
-    selected_jobs_listbox = tk.Listbox(dias_jobs_frame, selectmode="multiple", font=("Arial", 12), width=40, height=7,yscrollcommand=scrollbar_selec.set)
+    selected_jobs_listbox = tk.Listbox(dias_jobs_frame, selectmode="multiple", font=("Arial", 12), width=40, height=7,
+                                       yscrollcommand=scrollbar_selec.set)
     selected_jobs_listbox.grid(row=7, column=1, padx=(0, 40), pady=2)
     scrollbar_selec.config(command=selected_jobs_listbox.yview)
     scrollbar_selec.grid(row=7, column=0, sticky="ns", padx=(60, 0), pady=5)
@@ -641,17 +661,19 @@ def interfaz_seleccion_job():
     job_listbox.bind('<ButtonRelease-1>', on_job_click)
 
     confirm_button = tk.Button(dias_jobs_frame, text="Confirmar Selección", command=confirmar_seleccion,
-                               font=("Arial", 12),width=20)
-    confirm_button.grid(row=8, column=1, columnspan=2,padx=(200, 0), pady=8)
+                               font=("Arial", 12), width=20)
+    confirm_button.grid(row=8, column=1, columnspan=2, padx=(200, 0), pady=8)
 
     # Botón para descargar la malla temporal modificada
-    save_button = tk.Button(dias_jobs_frame, text="Descargar Temporal", command=save_job, font=("Arial", 12),width=20)
-    save_button.grid(row=9, column=1, columnspan=2, padx=(200, 0),pady=8)
+    save_button = tk.Button(dias_jobs_frame, text="Descargar Temporal", command=save_job, font=("Arial", 12), width=20)
+    save_button.grid(row=9, column=1, columnspan=2, padx=(200, 0), pady=8)
+
 
 def guardar_fecha(fecha):
     global fechas_seleccionadas
     fecha_obj = datetime.strptime(fecha, "%m/%d/%y").date()
     fechas_seleccionadas.append(fecha_obj)
+
 
 def abrir_calendario():
     global fechas_seleccionadas
@@ -666,10 +688,14 @@ def abrir_calendario():
     calendario.tag_config('seleccion', background='lightblue', foreground='black')
 
     # Al cerrar el calendario, guarda la fecha seleccionada y cierra la ventana
-    tk.Button(ventana_calendario, text="Cerrar y Guardar Fecha", command=lambda: [guardar_fecha(calendario.get_date()), ventana_calendario.destroy()]).grid(row=1, column=0, pady=10)
+    tk.Button(ventana_calendario, text="Cerrar y Guardar Fecha",
+              command=lambda: [guardar_fecha(calendario.get_date()), ventana_calendario.destroy()]).grid(row=1,
+                                                                                                         column=0,
+                                                                                                         pady=10)
 
     # Asignar acción al hacer clic en una fecha
     calendario.bind("<<CalendarSelected>>", lambda event: seleccionar_fecha(calendario))
+
 
 def actualizar_interfaz():
     global dias_jobs_frame
@@ -695,21 +721,27 @@ def actualizar_interfaz():
                    font=("Arial", 12), bg="white").grid(row=4, column=1, sticky="w", padx=10, pady=5)
 
     if seleccion_var.get() == "carga_manual":
-        tk.Button(dias_jobs_frame, text="Calendario manual", font=("Arial", 12), bg="white", command=abrir_calendario).grid(row=1, column=3, padx=10, pady=10)
+        tk.Button(dias_jobs_frame, text="Calendario manual", font=("Arial", 12), bg="white",
+                  command=abrir_calendario).grid(row=1, column=3, padx=10, pady=10)
 
-        interfaz_seleccion_job()
+        # interfaz_seleccion_job()
 
     else:
         # Mostrar las opciones "Desde" y "Hasta"
-        tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12), bg="white").grid(row=1, column=2, sticky="e", pady=5, padx=5)
-        start_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white', borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy')
+        tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12), bg="white").grid(row=1, column=2, sticky="e",
+                                                                                      pady=5, padx=5)
+        start_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white',
+                                     borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy')
         start_date_entry.grid(row=1, column=3, pady=5, padx=5)
 
-        tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12), bg="white").grid(row=2, column=2, sticky="e", pady=5, padx=5)
-        end_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white', borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy')
+        tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12), bg="white").grid(row=2, column=2, sticky="e",
+                                                                                      pady=5, padx=5)
+        end_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white', borderwidth=2,
+                                   font=("Arial", 12), date_pattern='dd/MM/yyyy')
         end_date_entry.grid(row=2, column=3, pady=5, padx=5)
 
-        interfaz_seleccion_job()
+    interfaz_seleccion_job()
+
 
 def seleccionar_fecha(calendario):
     fecha_str = calendario.get_date()
@@ -723,14 +755,16 @@ def seleccionar_fecha(calendario):
         for event in calendario.get_calevents(fecha_obj):
             calendario.calevent_remove(event)
 
+
 def mostrar_fechas(listbox):
     listbox.delete(0, tk.END)  # Limpiar el ListBox antes de agregar las fechas
     for fecha in fechas_seleccionadas:
         listbox.insert(tk.END, fecha)
     print(f"Fechas seleccionadas: {fechas_seleccionadas}")
 
+
 def main():
-    global original_jobs,selected_jobs_global
+    global original_jobs, selected_jobs_global
 
     try:
         root = tk.Tk()
@@ -748,7 +782,6 @@ def main():
 
         dias_jobs_frame = tk.Frame(root, padx=4, pady=8, bg="white", highlightthickness=0, relief="flat")
         dias_jobs_frame.pack(expand=True, fill="both")
-
 
         # Añadir la imagen de fondo al frame
         bg_label1 = tk.Label(dias_jobs_frame, image=bg_photo, borderwidth=0, highlightthickness=0)
@@ -779,6 +812,6 @@ def main():
         print(f"Se produjo un error: {e}")
         input("Presiona Enter para salir...")  # Evitar que la aplicación se cierre inmediatamente
 
+
 if __name__ == "__main__":
     main()
-

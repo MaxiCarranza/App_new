@@ -25,6 +25,7 @@ class Regex:
     DATAPROC_NAMESPACE = r'(?P<pais>\w{2})\.(?P<uuaa>k?[a-z0-9]{3,4})\.app-id-(?P<id>\d+.)\.(?P<ambiente>(dev|pro))'
     DATAPROC_JOB_ID = r'(?P<uuaa>k?[a-z0-9]{3,4})-(?P<pais>\w{2})-(?P<tipo>\w{3,4})-(?P<subtipo>\w{3,4})-(?P<nombre>.*)-(?P<nro>\d+)'
     MALLA = r'^CR-AR(?P<uuaa>K?[A-Z0-9]{3,4})(?P<periodicidad>[A-Z]{3})-[TK]02$'
+    MALLA_TMP = r'^CR-AR(?P<uuaa>K?[A-Z0-9]{3,4})(?P<periodicidad>TMP)-[TK](?!02)\d{2}$'
     APPLICATION = r'^(?P<uuaa>K?[A-Z0-9]{3,4})-(?P<pais>[A-Z]{2})-(?P<app>[A-Z0-9]+)$'
     JOBNAME = r'^(?P<pais>[A-Z])(?P<uuaa>K?[A-Z0-9]{3,4})(?P<tipo>[NEDRTCWAVMBPGSD])(?P<entorno>[PBDTCM])(?P<periodicidad>\d)[0-9A-Z]{3}$'
     MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'

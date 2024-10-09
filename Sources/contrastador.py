@@ -5,7 +5,7 @@ Analiza diferencias entre dos mallas exportadas de control M y logea en un archi
 realiza controles en una de ellas (la ambientada)
 
 Requiere Python >= 3.10
-Motivo: Uso de Structural Pattern Matching y nueva syntaxis de type hints
+Motivo: Uso de Structural Pattern Matching y nueva sintaxis de type hints
 """
 
 from __future__ import annotations
@@ -13,19 +13,14 @@ from __future__ import annotations
 import time
 import datetime
 import os
-import utils
-
-import graphlib
-
-import validaciones
-import diferencia
 
 from pathlib import Path
 
-from record import ControlRecorder
-from record import DiffRecorder
+from controlm import ControlRecorder, validaciones, diferencia
+from controlm import DiffRecorder
+from controlm import utils
 from controlm import ControlmFolder
-from constantes import Carpetas
+from controlm.constantes import Carpetas
 
 
 if __name__ == '__main__':

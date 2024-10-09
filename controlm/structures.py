@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import re
 
-import utils
+import controlm.utils as utils
 
-from constantes import TagXml
-from constantes import Regex
+from controlm.constantes import TagXml
+from controlm.constantes import Regex
 
 from xml.etree.ElementTree import parse
 from xml.etree.ElementTree import Element
@@ -74,16 +74,16 @@ class ControlmFolder:
             self.filename = xml_input
 
             try:
-                base = parse(xml_input).getroot().find(TagXml.FOLDER)
-                self.name = base.get(TagXml.NOMBRE_MALLA)
+                self._base = parse(xml_input).getroot().find(TagXml.FOLDER)
+                self.name = self._base.get(TagXml.NOMBRE_MALLA)
             except (ParseError, AttributeError) as error_xml:
                 mensaje = f"Archivo xml [{xml_input}] corrupto o mal formado. Revisar que posea el formato correcto de xml y respete la estructura de malla exportada de Control-m"
                 raise Exception(mensaje) from error_xml
 
         elif isinstance(xml_input, Element):
             try:
-                base = xml_input.find(TagXml.FOLDER)
-                self.name = base.get(TagXml.NOMBRE_MALLA)
+                self._base = xml_input.find(TagXml.FOLDER)
+                self.name = self._base.get(TagXml.NOMBRE_MALLA)
             except (ParseError, AttributeError) as error_xml:
                 mensaje = f"Elemento [{xml_input}] corrupto o mal formado. Revisar que posea el formato correcto de xml y respete la estructura de malla exportada de Control-m"
                 raise Exception(mensaje) from error_xml
@@ -91,15 +91,12 @@ class ControlmFolder:
         else:
             raise Exception("Proveer el tipo correcto de input para el xml, str o Element de xml")
 
-        match = re.search(Regex.MALLA, self.name)
-        if match is not None:
-            self.uuaa = match.group('uuaa')
-            self.periodicidad = match.group('periodicidad')
-        else:
+        self._match = re.search(Regex.MALLA, self.name)
+        if self._match is None:
             raise ValueError(f"No se puede obtener uuaa o periodicidad a partir del nombre malla [{self.name}] en el archivo [{xml_input}]. Para realizar el analisis es obligatorio que cumpla con el estandar definido por el regex [{Regex.MALLA}]")
 
         self._jobs: dict[str, ControlmJob] = dict()
-        for job_element in base.findall(TagXml.JOB):
+        for job_element in self._base.findall(TagXml.JOB):
             try:
                 job_ctrlm = ControlmJob(job_element, self.filename)
             except Exception as error_carga_job:
@@ -107,10 +104,12 @@ class ControlmFolder:
                 raise Exception(mensaje) from error_carga_job
 
             if job_ctrlm.name in self._jobs.keys():
-                msg = f"No se puede cargar la informacion de una malla [{self.filename}] con jobnames duplicados [{job_ctrlm.name}] en el archivo [{self.filename}]"
+                msg = f"No se puede cargar la informacion de una malla [{self.name}] con jobnames duplicados [{job_ctrlm.name}] en el archivo [{self.filename}]"
                 raise ValueError(msg)
             else:
                 self._jobs[job_ctrlm.name] = job_ctrlm
+
+        setattr(ControlmJob, 'malla', self)
 
         # Armamos el digrafo de la malla
         self.digrafo = ControlmDigrafo(list(self._jobs.values()))
@@ -135,11 +134,29 @@ class ControlmFolder:
         """
         return self._jobs.get(jobname_a_buscar, None)
 
+    @property
+    def uuaa(self) -> str:
+        return self._match.group('uuaa')
+
+    @property
+    def periodicidad(self) -> str:
+        return self._match.group('periodicidad')
+
+    @property
+    def order_method(self) -> str:
+        return self._base.get('FOLDER_ORDER_METHOD')
+
+    @property
+    def datacenter(self) -> str:
+        return self._base.get('DATACENTER')
+
 
 class ControlmJob:
     """
     Clase que representa un job de control M
     """
+
+    malla: ControlmFolder = None
 
     mapeo_jobtipo_descripcion = {
         'C': 'ingesta',
@@ -883,7 +900,18 @@ class ControlmDigrafo:
 
         return arbol
 
-    def find_shortest_path(self, start, end, path=[]):
+    def find_shortest_path(self, start, end, path=None) -> list[str] | None:
+        """
+        Adaptado de alguna publicación oficial de Python que hasta hoy en día no pude volver a encontrar el
+        link a la misma. Encuentra el camino (que, en teoría es el mas corto) de un job a otro
+
+        :param start: Inicio de la cadena
+        :param end: Target, osea job al cual se debe buscar el camino
+        :param path: Lista de jobnames en la cual se va armando el camino
+        :return: Lista de jobnames ***en orden*** que representa el camino desde un job a otro
+        """
+        if path is None:
+            path = []
         path = path + [start]
         if start == end:
             return path
