@@ -16,6 +16,8 @@ from xml.etree.ElementTree import Element
 from xml.etree.ElementTree import ParseError
 from typing import Literal
 
+import itertools
+
 
 class ControlmContainer:
 
@@ -821,6 +823,15 @@ class ControlmDigrafo:
         """
         return True if jobname in self.raices() else False
 
+    def es_hoja(self, jobname: str) -> bool:
+        """
+        Verifica si un jobname es hoja de una cadena
+
+        :param jobname: Jobname a verificar
+        :return: True si lo es, Falso caso contrario
+        """
+        return True if jobname in self.hojas() else False
+
     def hojas(self) -> list[str]:
         """
         Devuelve aquellos nodos del digrafo que no tienen sucesores. Se considera como hoja si el nodo no tiene ninguna
@@ -870,6 +881,14 @@ class ControlmDigrafo:
                 cadena.extend(self.recorrer_cadena_inversa(hijo, visitados))
 
         return cadena
+
+    def recorrer_cadena_completa(self, inicio: str) -> list[str]:
+        """
+        Obtiene la cadena completa que 'nace' a partir del inicio. TODO: completar
+
+        :param inicio: Jobname inicial a partir del cual se inicia el recorrido
+        """
+        return list(set(self.recorrer_cadena(inicio) + self.recorrer_cadena_inversa(inicio)))
 
     def obtener_arboles(self) -> list[set[str]]:
         """
@@ -925,3 +944,93 @@ class ControlmDigrafo:
                     if not shortest or len(newpath) < len(shortest):
                         shortest = newpath
         return shortest
+
+    def obtener_pares_xy_cadena(self, cadena_jobnames: list[str]) -> list[tuple[str, str]]:
+        lista_pares_retorno = []
+        pares_xy = self.obtener_paresxy()
+
+        for parxy in pares_xy:
+            if parxy[0] in cadena_jobnames and parxy[1] in cadena_jobnames:
+                lista_pares_retorno.append(parxy)
+
+        return lista_pares_retorno
+
+
+class MallaMaxi:
+    """
+    Abstracción de lo que se va a transformar en una malla temporal. Toma como base la lista de jobs que se deben
+    'transformar' y la malla de referencia de la cual obtiene informacion que usa durante tod0 el proceso
+    """
+
+    def __init__(self, cadena_jobnames: list[ControlmJob], malla_origen: ControlmFolder):
+        """
+        Constructor
+
+        :param cadena_jobnames: Lista de jobs que se deben transformar a temporales
+        :param malla_origen: Malla que contiene los jobs
+        """
+        self.cadena_primordial = None
+        self._trabajos_seleccionados = cadena_jobnames
+        self._malla_origen = malla_origen
+
+    def ordenar(self):
+        """
+        Genera una lista de jobnames que representa la cadena 'base', o 'primordial' de la malla temporal. A partir de
+        esta cadena se van a generar tantas como odates se hayan seleccionado en tkinter.
+        """
+
+        # TODO: Contemplar el caso en el cual una cadena tiene 2 o mas raices (hay que generar el arbol)
+        cadenas_relevantes = [self._malla_origen.digrafo.recorrer_cadena_completa(job.name) for job in self._trabajos_seleccionados]
+        cadenas_relevantes = list(k for k, _ in itertools.groupby(cadenas_relevantes))
+
+        # cadena_final_tmp es una Lista de tuplas que tiene la siguiente estructura:
+        #   (jobname, orden_en_cadena)
+        #
+        # Dicha lista ya viene con los jobs ordenados, es decir, que ya 'se sabe' qué jobname le debe dejar marca a cual
+        #
+        # Por ej: [('AMOLCP0010', 4), ('AMOLCP0011', 5)]
+        # Cuando se exporte la temporal AMOLCP0010 le va a dejar marca a AMOLCP0011
+        #
+        # Nota: cadena_final_tmp ya está filtrada (ver el filter que se realiza sobre cadena_con_orden de mas abajo),
+        # pues no va a poseer los jobs que no fueron seleccionados en tequinter
+        cadena_final_tmp = []
+
+        for cadena in cadenas_relevantes:
+            cadena_con_orden = []
+            for jobname in cadena:
+                if self._malla_origen.digrafo.es_raiz(jobname):
+                    cadena_descendiente = self._malla_origen.digrafo.recorrer_cadena(jobname)
+                    for jobname_des in cadena_descendiente:
+                        cadena_con_orden.append(
+                            (jobname_des, len(self._malla_origen.digrafo.find_shortest_path(start=jobname, end=jobname_des)))
+                        )
+                    break
+
+            cadena_final_tmp.append(
+                list(
+                    filter(
+                        lambda x: x[0] in [trabajo.name for trabajo in self._trabajos_seleccionados],  # Sacamos aquellos que no fueron seleccionados
+                        cadena_con_orden)
+                )
+            )
+
+        # TODO: Queda a cargo de Maximus Prime embellecer esta bazofia
+        lista_aplanada = list(map(lambda x: [e[0] for e in x], cadena_final_tmp))
+        cadena_primordial = []
+        for lista in lista_aplanada:
+            for elemento in lista:
+                cadena_primordial.append(elemento)
+
+        self.cadena_primordial = cadena_primordial
+
+    def ambientar(self):
+        pass
+
+    def replicar(self):
+        pass
+
+    def enlazar(self):
+        pass
+
+    def exportar(self) -> Element:  # TODO: ETREE
+        pass

@@ -36,33 +36,29 @@ Future Improvements:
     - Soporte para carga y exportación de archivos en diferentes formatos.
     - Mejorar la visualización y gestión de trabajos.
 """
-import subprocess
+
 import sys
-import io
 import traceback
 import logging
 import random
 import os
 import xml.etree.ElementTree as ET
 import requests
-import json
 import pandas as pd
-import pickle
-import shutil
 import re
 import tkinter as tk
 
-from numpy.ma.core import indices
 from pandas.tseries.offsets import BDay
-from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
-from controlm.structures import ControlmDigrafo
+from controlm.structures import ControlmDigrafo, ControlmFolder
 from tkinter import ttk, messagebox, filedialog, simpledialog, Listbox, Scrollbar
 from PIL import Image, ImageTk
-from PIL.ImageOps import contain
 from tkcalendar import DateEntry, Calendar
 from datetime import datetime, timedelta
-from tkinter.ttk import Treeview
+
+from xml.etree.ElementTree import Element
+from controlm.structures import MallaMaxi
+
 
 current_year = datetime.now().year
 api_url = f'https://api.argentinadatos.com/v1/feriados/{current_year}'
@@ -114,18 +110,18 @@ class MarcaOut:
         self.signo = signo
 
 
-def preparar_datos_para_digrafo(jobs):
-    job_data = []
-    for job in jobs:
-        job_name = job.get('JOBNAME')
-
-        marcasout = [MarcaOut(marca.get('NAME'), marca.get('SIGN')) for marca in job.findall('.//OUTCOND')]
-        marcasin = [MarcaOut(marca.get('NAME'), marca.get('SIGN')) for marca in job.findall('.//INCOND')]
-
-        if job_name:
-            job_data.append(JobData(name=job_name, marcasout=marcasout, marcasin=marcasin))
-
-    return job_data
+# def preparar_datos_para_digrafo(jobs: list[Element]): TODO: BORRAME
+#     job_data = []
+#     for job in jobs:
+#         job_name = job.get('JOBNAME')
+#
+#         marcasout = [MarcaOut(marca.get('NAME'), marca.get('SIGN')) for marca in job.findall('.//OUTCOND')]
+#         marcasin = [MarcaOut(marca.get('NAME'), marca.get('SIGN')) for marca in job.findall('.//INCOND')]
+#
+#         if job_name:
+#             job_data.append(JobData(name=job_name, marcasout=marcasout, marcasin=marcasin))
+#
+#     return job_data
 
 
 def es_fecha_valida(fecha):
@@ -270,7 +266,6 @@ def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_p
 
 def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,
                     fechas_manual=None):
-    global new_filename, xml_buffer, new_folder_name
     """
     Función para modificar la malla.
 
@@ -281,197 +276,47 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     :param fechas_pross: toma el fechas de la opcion
     :param fechas: Lista de fechas seleccionadas. Si no se pasan, se usará la variable global fechas_seleccionadas.
     """
-    random_number = str(random.randint(10, 99))
-    current_date = start_date
-    tree = ET.parse(filename)
-    root = tree.getroot()
-    jobs = root.findall('.//JOB')
-    jobs_data = preparar_datos_para_digrafo(jobs)
-    controlM_digrafo = ControlmDigrafo(jobs_data)
-    application_value = root.find('.//JOB').get('APPLICATION')
-    if application_value:
-        app_prefix = application_value[:3]
-    else:
-        app_prefix = "None"  # Si no se encuentra APPLICATION
+    global new_filename, xml_buffer, new_folder_name
 
-    folder_name = root.find('.//FOLDER').get('FOLDER_NAME')
-    if folder_name:
-        new_folder_name = f"CR-AR{app_prefix}TMP-T{random_number}"
-        root.find('.//FOLDER').set('FOLDER_NAME', new_folder_name)
-        root.find('.//FOLDER').set('FOLDER_ORDER_METHOD', "PRUEBAS")
+    # TODO: Reveer si se puede armar la malla de cero env ez de modificar la existente
+    nro_malla = str(random.randint(10, 99))
+    new_folder_name = f"CR-AR{malla.uuaa}TMP-T{nro_malla}"
 
     jobs_creados = []
-
-    deja_marca = None
-    recibe_marca = None
-
-    primer_job = False
-    segudo_resto = False
-
-    dependencias = []
-    depen = []
-    for job_name in selected_jobs:
-        cadena_descendente = controlM_digrafo.recorrer_cadena(job_name)
-        cadena_ascendente = controlM_digrafo.recorrer_cadena_inversa(job_name)
-        cadena_completa = list(set(cadena_descendente + cadena_ascendente))
-        pares_xy = controlM_digrafo.obtener_paresxy()
-        for parxy in pares_xy:
-            if parxy[0] in cadena_completa and parxy[1] in cadena_completa:
-                depen.append((parxy[0], parxy[1]))
-
-    for job in root.findall('.//JOB'):
-        job_name = job.get('JOBNAME')
-
-        # Si el job contiene "TP" en su nombre, iniciamos el proceso de búsqueda de dependencias
-        if "TP" in job_name:
-            siguiente_job = job  # El siguiente job a procesar inicialmente es el que contiene "TP"
-
-            while siguiente_job is not None:
-                encontrado = False  # Bandera para verificar si se encontró un job con SIGN="+"
-
-                for outcond in siguiente_job.findall('.//OUTCOND'):
-                    outcond_name = outcond.get('NAME')  # Obtener el nombre de la marca
-                    sign = outcond.get('SIGN')
-
-                    # Si la marca tiene SIGN="+", es una marca de dependencia válida
-                    if sign == "+" and '-TO-' in outcond_name:
-                        partes = outcond_name.split('-TO-')
-                        if len(partes) == 2:
-                            quien_deja_marca = partes[0]  # Job que deja la marca
-                            quien_recibe_marca = partes[1]  # Job que recibe la marca
-
-                            # Añadir la dependencia a la lista
-                            dependencias.append((quien_deja_marca, quien_recibe_marca))
-
-                            # Buscar el siguiente job en la cadena de dependencias
-                            for siguiente in root.findall('.//JOB'):
-                                if siguiente.get('JOBNAME') == quien_recibe_marca:
-                                    siguiente_job = siguiente
-                                    encontrado = True
-                                    break
-
-                if not encontrado:
-                    siguiente_job = None
-
-    for job in root.findall('.//JOB'):
-        job_name = job.get('JOBNAME')
-        if job_name not in selected_jobs:
-            root.find('.//FOLDER').remove(job)
-
-    fechas_a_iterar = obtener_fechas_optimizado(start_date, end_date, fechas_pross, fechas_manual)
-
-    jobs_to_duplicate = [job for job in root.findall('.//JOB') if job.get('JOBNAME') in selected_jobs]
 
     random_job_suffix = f"9{random.randint(1, 100):03}"
     job_suffix_count = int(random_job_suffix)
 
-    with ProcessPoolExecutor() as executor:
-        futures = []
-        for current_date in fechas_a_iterar:
-            for job in jobs:
-                if job.get('JOBNAME') in selected_jobs:
-                    futures.append(
-                        executor.submit(
-                            procesar_job_para_fecha,
-                            job,
-                            current_date,
-                            mail_personal,
-                            caso_de_uso,
-                            app_prefix,
-                            random_number,
-                            random_job_suffix,
-                            job_suffix_count
-                        )
-                    )
-                    job_suffix_count += 1
+    fechas_a_iterar = obtener_fechas_optimizado(start_date, end_date, fechas_pross, fechas_manual)
+    jobs_to_duplicate = [job for job in malla.jobs() if job.name in selected_jobs]
 
-        for future in futures:
-            new_job, fecha, original_job_name, job_suffix_count = future.result()
-            root.find('.//FOLDER').append(new_job)
-            jobs_creados.append((new_job.get('JOBNAME'), original_job_name, fecha.strftime('%Y%m%d')))
+    # Comienza la salsa
+    max = MallaMaxi(jobs_to_duplicate, malla)
+    max.ordenar()
 
-    for job in jobs_to_duplicate:
-        root.find('.//FOLDER').remove(job)
-
-    jobs_creados_ordenados = ordenar_jobs_creados_por_dependencias(dependencias, jobs_creados)
-    job_agregar_marcas = []
-    for x in jobs_creados_ordenados:
-        job_agregar_marcas.append(x[0])
-
-    for i in range(len(job_agregar_marcas) - 1):
-        deja_marca = job_agregar_marcas[i]
-        recibe_marca = job_agregar_marcas[i + 1]
-
-        for job in root.findall('.//JOB'):
-            if len(jobs_creados) <= 30:
-                if job.get('JOBNAME') == deja_marca:
-                    marca_mofied_attrib = {
-                        'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                        'ODATE': "ODAT",
-                        'SIGN': "+"
-                    }
-                    ET.SubElement(job, "OUTCOND", marca_mofied_attrib)
-
-                elif job.get('JOBNAME') == recibe_marca:
-                    marca_mofied_attrib = {
-                        'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                        'ODATE': "ODAT",
-                        'SIGN': "-"
-                    }
-                    ET.SubElement(job, "OUTCOND", marca_mofied_attrib)
-                    prere__mofied_attrib = {
-                        'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                        'ODATE': "ODAT",
-                        'AND_OR': "A"
-                    }
-                    ET.SubElement(job, "INCOND", prere__mofied_attrib)
-            else:
-                for on_element in job.findall('.//ON[@STMT="*"][@CODE="OK"]'):
-                    if job.get('JOBNAME') == deja_marca:
-                        order_job = {
-                            'TABLE_NAME': f"{new_folder_name}",
-                            'NAME': f"{recibe_marca}",
-                            'ODATE': "ODAT",
-                            'REMOTE': 'N'
-                        }
-                        ET.SubElement(on_element, "DOFORCEJOB", order_job)
-
-                        marca_mofied_attrib = {
-                            'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                            'ODATE': "ODAT",
-                            'SIGN': "+"
-                        }
-                        ET.SubElement(on_element, "DOCOND", marca_mofied_attrib)
-
-                    elif job.get('JOBNAME') == recibe_marca:
-                        prere__mofied_attrib = {
-                            'NAME': f"{deja_marca}-TO-{recibe_marca}",
-                            'ODATE': "ODAT",
-                            'AND_OR': "A"
-                        }
-                        ET.SubElement(job, "INCOND", prere__mofied_attrib)
-    new_filename = f"{new_folder_name}.xml"
-    xml_buffer = io.BytesIO()
-    tree.write(xml_buffer, encoding='utf-8', xml_declaration=True)
     return new_filename
 
 
 def select_attached_file():
-    global attached_file_path, jobs
+    global attached_file_path, jobs, malla
     attached_file_path = filedialog.askopenfilename(title="Selecciona una malla XML",
                                                     filetypes=[("XML files", "*.xml")])
 
+    # TODO: Es necesario este IF ? Siempre se selecciona un archivo
+    #   Ademas validar si el archivo es xml, porque por el momento funciona con cualquier extensión
     if attached_file_path:
 
-        tree = ET.parse(attached_file_path)
-        root = tree.getroot()
+        malla = ControlmFolder(attached_file_path)  # TODO: Envolver en try para que salga mensaje de error (en tk) si no se puede crear el objeto ControlmFolder
+        # tree = ET.parse(attached_file_path)
+        # root = tree.getroot()
 
-        jobs = root.findall('.//JOB')
+        # jobs = root.findall('.//JOB')
 
+        # Limpia las listas si ya estaban cargada previamentes
         job_listbox.delete(0, tk.END)
         selected_jobs_listbox.delete(0, tk.END)
 
-        job_names_from_xml = [job.get('JOBNAME') for job in jobs]
+        job_names_from_xml = malla.jobnames()
 
         for job_name in job_names_from_xml:
             job_listbox.insert(tk.END, job_name)
@@ -495,13 +340,15 @@ def save_job():
 
 
 def confirmar_seleccion():
+
     global modified_file_path, selected_jobs_listbox, caso_uso_var, mail_entry, start_date_entry, end_date_entry, job_listbox
 
     email = mail_entry.get()
     if not validate_email(email):
         messagebox.showerror("Mail inválido", "Por favor, ingrese un Mail válido.")
         return
-    #Obtener los jobs seleccionados
+
+    # Obtener los jobs seleccionados
     indices = job_listbox.curselection()
     selected_jobs = [selected_jobs_listbox.get(i) for i in indices]
 
@@ -511,16 +358,21 @@ def confirmar_seleccion():
                                              end_date_entry.get_date(), selected_jobs, caso_uso_var.get(),
                                              seleccion_var.get(), None)
         messagebox.showinfo("Éxito", "La malla ha sido modificada y guardada temporalmente.")
+
     elif selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() == "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), None,
                                              None, selected_jobs, caso_uso_var.get(),
                                              seleccion_var.get(), fechas_seleccionadas)
+
     elif not caso_uso_var.get() or not mail_entry.get():
         messagebox.showwarning("Advertencia", "Por favor, completar todos los campos.")
+
     elif not selected_jobs:
         messagebox.showwarning("Advertencia", "Por favor, elija al menos un job.")
+
     elif not attached_file_path:
         messagebox.showwarning("Advertencia", "Por favor, adjunte un archivo.")
+
     else:
         messagebox.showwarning("Advertencia", "Por favor, adjunte un archivo y al menos un job.")
 
