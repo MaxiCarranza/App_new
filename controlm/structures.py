@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 
 import controlm.utils as utils
+import random
 
 from controlm.constantes import TagXml
 from controlm.constantes import Regex
@@ -919,6 +920,10 @@ class ControlmDigrafo:
 
         return arbol
 
+    def recorrer_arbol(self) -> list[set[str]]:
+        pass
+
+
     def find_shortest_path(self, start, end, path=None) -> list[str] | None:
         """
         Adaptado de alguna publicación oficial de Python que hasta hoy en día no pude volver a encontrar el
@@ -972,6 +977,9 @@ class MallaMaxi:
         self.cadena_primordial = None
         self._trabajos_seleccionados = cadena_jobnames
         self._malla_origen = malla_origen
+        self._job_suffix_count = int(random.randint(1, 100))
+
+
 
     def ordenar(self):
         """
@@ -981,6 +989,7 @@ class MallaMaxi:
 
         # TODO: Contemplar el caso en el cual una cadena tiene 2 o mas raices (hay que generar el arbol)
         cadenas_relevantes = [self._malla_origen.digrafo.recorrer_cadena_completa(job.name) for job in self._trabajos_seleccionados]
+        cadenas_relevantes = map(sorted,cadenas_relevantes)
         cadenas_relevantes = list(k for k, _ in itertools.groupby(cadenas_relevantes))
 
         # cadena_final_tmp es una Lista de tuplas que tiene la siguiente estructura:
@@ -1015,18 +1024,77 @@ class MallaMaxi:
             )
 
         cadena_primordial = [e[0] for lista in cadena_final_tmp for e in lista]
-
-
+        cadena_primordial = list(map(self._malla_origen.obtener_job,cadena_primordial))
 
         self.cadena_primordial = cadena_primordial
 
-    def ambientar(self):
-        pass
+        for job in cadena_primordial:
+            self._ambientar_name(job)
+
+        for index,job in enumerate(cadena_primordial):
+            self._ambientar_marcas(job,index)
+
+    @property
+    def job_suffix(self):
+        return f"9{self._job_suffix_count:03}"
+
+    def _ambientar_name(self, job: ControlmJob):
+        job.name = job.name[:-4] + self.job_suffix
+        self._job_suffix_count += 1
+
+    def _ambientar_marcas(self, job: ControlmJob, index: int):
+        if index == 0:
+            job.marcasin = None
+        else:
+            job.marcasin = [
+                ControlmMarcaIn(
+                marca_nombre= f'{self.cadena_primordial[index-1]}-TO-{job.name}',
+                odate_esperado= 'ODAT'
+            )]
+
+        if index == len(self.cadena_primordial)-1:
+            job.marcasout = None
+        else:
+            job.marcasout = [
+                ControlmMarcaOut(
+                marca_nombre= f'{job.name}-TO-{self.cadena_primordial[index+1]}',
+                odate_esperado = 'ODAT',
+                signo = '+',
+                mediante_accion = False
+            )]
+
+        if job.marcasin is not None:
+            try:
+                job.marcasout.append(
+                    ControlmMarcaOut(
+                        marca_nombre=f'{self.cadena_primordial[index-1]}-TO-{job.name}',
+                        odate_esperado='ODAT',
+                        signo='-',
+                        mediante_accion=False
+                    ))
+            except AttributeError:
+                job.marcasout = [(
+                    ControlmMarcaOut(
+                        marca_nombre=f'{self.cadena_primordial[index - 1]}-TO-{job.name}',
+                        odate_esperado='ODAT',
+                        signo='-',
+                        mediante_accion=False
+                    ))]
+
+
+
+
 
     def replicar(self):
-        pass
+        """
+
+        """
+
 
     def enlazar(self):
+        pass
+
+    def ambientar(self):
         pass
 
     def exportar(self) -> Element:  # TODO: ETREE

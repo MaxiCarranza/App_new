@@ -284,15 +284,13 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
     jobs_creados = []
 
-    random_job_suffix = f"9{random.randint(1, 100):03}"
-    job_suffix_count = int(random_job_suffix)
-
     fechas_a_iterar = obtener_fechas_optimizado(start_date, end_date, fechas_pross, fechas_manual)
     jobs_to_duplicate = [job for job in malla.jobs() if job.name in selected_jobs]
 
     # Comienza la salsa
     max = MallaMaxi(jobs_to_duplicate, malla)
     max.ordenar()
+    max.replicar()
 
     return new_filename
 
