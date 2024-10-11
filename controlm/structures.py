@@ -1014,12 +1014,9 @@ class MallaMaxi:
                 )
             )
 
-        # TODO: Queda a cargo de Maximus Prime embellecer esta bazofia
-        lista_aplanada = list(map(lambda x: [e[0] for e in x], cadena_final_tmp))
-        cadena_primordial = []
-        for lista in lista_aplanada:
-            for elemento in lista:
-                cadena_primordial.append(elemento)
+        cadena_primordial = [e[0] for lista in cadena_final_tmp for e in lista]
+
+
 
         self.cadena_primordial = cadena_primordial
 

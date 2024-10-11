@@ -348,10 +348,7 @@ def confirmar_seleccion():
         messagebox.showerror("Mail inválido", "Por favor, ingrese un Mail válido.")
         return
 
-    # Obtener los jobs seleccionados
-    indices = job_listbox.curselection()
-    selected_jobs = [selected_jobs_listbox.get(i) for i in indices]
-
+    selected_jobs = list(selected_jobs_global)
     # Llamar a la función modificar_malla con los jobs seleccionados
     if selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() != "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), start_date_entry.get_date(),
