@@ -96,7 +96,8 @@ class ControlmFolder:
 
         self._match = re.search(Regex.MALLA, self.name)
         if self._match is None:
-            raise ValueError(f"No se puede obtener uuaa o periodicidad a partir del nombre malla [{self.name}] en el archivo [{xml_input}]. Para realizar el analisis es obligatorio que cumpla con el estandar definido por el regex [{Regex.MALLA}]")
+            raise ValueError(
+                f"No se puede obtener uuaa o periodicidad a partir del nombre malla [{self.name}] en el archivo [{xml_input}]. Para realizar el analisis es obligatorio que cumpla con el estandar definido por el regex [{Regex.MALLA}]")
 
         self._jobs: dict[str, ControlmJob] = dict()
         for job_element in self._base.findall(TagXml.JOB):
@@ -323,7 +324,8 @@ class ControlmJob:
                 info_match_dataproc = self.get_info_dataproc_id()
                 if info_match_dataproc is not None:
 
-                    if info_match_dataproc['tipo'] in ['spk', 'biz', 'psp', 'sbx', 'hmm'] or info_match_dataproc['nombre'] == 'hdfsrename':
+                    if (info_match_dataproc['tipo'] in ['spk', 'biz', 'psp', 'sbx', 'hmm']
+                            or info_match_dataproc['nombre'] == 'hdfsrename'):
                         # Proceso spark o tablon, es de master (deberia...). Renombrado tambien va master
                         self.fase = 'master'
 
@@ -350,7 +352,8 @@ class ControlmJob:
                         if info_match_dataproc['nombre'].endswith('s'):
                             self.fase = 'staging'
 
-                        if self.fase is None and (info_match_dataproc['pais'] == 'gl' or info_match_dataproc['uuaa'].startswith('k')):
+                        if self.fase is None and (
+                                info_match_dataproc['pais'] == 'gl' or info_match_dataproc['uuaa'].startswith('k')):
                             self.fase = 'master'
 
                         if self.fase is None:
@@ -528,7 +531,8 @@ class ControlmJob:
         # TODO: Hacer el CTMERR :^), lo mencioné en el docstring pero no se hizo aún
 
         if iter_actual > self.cant_max_iteraciones:
-            print(f"WARNING: CANTIDAD MÁXIMA DE ITERACIONES ({iter_actual}) AL EXPANDIR EL STRING [{template}] ALCANZADAS. REVISAR RECURSIVIDAD INFINITA EN LAS VARIABLES DE CONTROL M")
+            print(
+                f"WARNING: CANTIDAD MÁXIMA DE ITERACIONES ({iter_actual}) AL EXPANDIR EL STRING [{template}] ALCANZADAS. REVISAR RECURSIVIDAD INFINITA EN LAS VARIABLES DE CONTROL M")
 
         # El sorted mitiga aquellas variables que pueden estar incluídas en ellas mismas
         # Ejemplo %%MAIL="hola", %%MAIL_2="hola_soyotro"
@@ -575,7 +579,7 @@ class ControlmMarcaIn:
             self.destino = None
         else:
             self.origen = marca_nombre[:index]
-            self.destino = marca_nombre[index+4:]
+            self.destino = marca_nombre[index + 4:]
 
             self._match_origen = re.search(Regex.JOBNAME, self.origen)
             self._match_destino = re.search(Regex.JOBNAME, self.destino)
@@ -923,7 +927,6 @@ class ControlmDigrafo:
     def recorrer_arbol(self) -> list[set[str]]:
         pass
 
-
     def find_shortest_path(self, start, end, path=None) -> list[str] | None:
         """
         Adaptado de alguna publicación oficial de Python que hasta hoy en día no pude volver a encontrar el
@@ -979,8 +982,6 @@ class MallaMaxi:
         self._malla_origen = malla_origen
         self._job_suffix_count = int(random.randint(1, 100))
 
-
-
     def ordenar(self):
         """
         Genera una lista de jobnames que representa la cadena 'base', o 'primordial' de la malla temporal. A partir de
@@ -988,8 +989,9 @@ class MallaMaxi:
         """
 
         # TODO: Contemplar el caso en el cual una cadena tiene 2 o mas raices (hay que generar el arbol)
-        cadenas_relevantes = [self._malla_origen.digrafo.recorrer_cadena_completa(job.name) for job in self._trabajos_seleccionados]
-        cadenas_relevantes = map(sorted,cadenas_relevantes)
+        cadenas_relevantes = [self._malla_origen.digrafo.recorrer_cadena_completa(job.name) for job in
+                              self._trabajos_seleccionados]
+        cadenas_relevantes = map(sorted, cadenas_relevantes)
         cadenas_relevantes = list(k for k, _ in itertools.groupby(cadenas_relevantes))
 
         # cadena_final_tmp es una Lista de tuplas que tiene la siguiente estructura:
@@ -1011,28 +1013,30 @@ class MallaMaxi:
                     cadena_descendiente = self._malla_origen.digrafo.recorrer_cadena(jobname)
                     for jobname_des in cadena_descendiente:
                         cadena_con_orden.append(
-                            (jobname_des, len(self._malla_origen.digrafo.find_shortest_path(start=jobname, end=jobname_des)))
+                            (jobname_des,
+                             len(self._malla_origen.digrafo.find_shortest_path(start=jobname, end=jobname_des)))
                         )
                     break
 
             cadena_final_tmp.append(
                 list(
                     filter(
-                        lambda x: x[0] in [trabajo.name for trabajo in self._trabajos_seleccionados],  # Sacamos aquellos que no fueron seleccionados
+                        lambda x: x[0] in [trabajo.name for trabajo in self._trabajos_seleccionados],
+                        # Sacamos aquellos que no fueron seleccionados
                         cadena_con_orden)
                 )
             )
 
         cadena_primordial = [e[0] for lista in cadena_final_tmp for e in lista]
-        cadena_primordial = list(map(self._malla_origen.obtener_job,cadena_primordial))
+        cadena_primordial = list(map(self._malla_origen.obtener_job, cadena_primordial))
 
         self.cadena_primordial = cadena_primordial
 
         for job in cadena_primordial:
             self._ambientar_name(job)
 
-        for index,job in enumerate(cadena_primordial):
-            self._ambientar_marcas(job,index)
+        for index, job in enumerate(cadena_primordial):
+            self._ambientar_marcas(job, index)
 
     @property
     def job_suffix(self):
@@ -1048,26 +1052,26 @@ class MallaMaxi:
         else:
             job.marcasin = [
                 ControlmMarcaIn(
-                marca_nombre= f'{self.cadena_primordial[index-1]}-TO-{job.name}',
-                odate_esperado= 'ODAT'
-            )]
+                    marca_nombre=f'{self.cadena_primordial[index - 1]}-TO-{job.name}',
+                    odate_esperado='ODAT'
+                )]
 
-        if index == len(self.cadena_primordial)-1:
+        if index == len(self.cadena_primordial) - 1:
             job.marcasout = None
         else:
             job.marcasout = [
                 ControlmMarcaOut(
-                marca_nombre= f'{job.name}-TO-{self.cadena_primordial[index+1]}',
-                odate_esperado = 'ODAT',
-                signo = '+',
-                mediante_accion = False
-            )]
+                    marca_nombre=f'{job.name}-TO-{self.cadena_primordial[index + 1]}',
+                    odate_esperado='ODAT',
+                    signo='+',
+                    mediante_accion=False
+                )]
 
         if job.marcasin is not None:
             try:
                 job.marcasout.append(
                     ControlmMarcaOut(
-                        marca_nombre=f'{self.cadena_primordial[index-1]}-TO-{job.name}',
+                        marca_nombre=f'{self.cadena_primordial[index - 1]}-TO-{job.name}',
                         odate_esperado='ODAT',
                         signo='-',
                         mediante_accion=False
@@ -1081,15 +1085,10 @@ class MallaMaxi:
                         mediante_accion=False
                     ))]
 
-
-
-
-
     def replicar(self):
         """
 
         """
-
 
     def enlazar(self):
         pass
