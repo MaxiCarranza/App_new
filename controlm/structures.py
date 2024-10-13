@@ -4,20 +4,21 @@ Modulo que contiene todas las clases correspondientes a elementos notables de co
 
 from __future__ import annotations
 
+import itertools
+import random
 import re
 
-import controlm.utils as utils
-import random
-
-from controlm.constantes import TagXml
-from controlm.constantes import Regex
-
-from xml.etree.ElementTree import parse
+from typing import Literal
+from copy import deepcopy
 from xml.etree.ElementTree import Element
 from xml.etree.ElementTree import ParseError
-from typing import Literal
+from xml.etree.ElementTree import parse
+from xml.etree.ElementTree import tostringlist
+from xml.etree.ElementTree import fromstringlist
 
-import itertools
+import controlm.utils as utils
+from controlm.constantes import Regex
+from controlm.constantes import TagXml
 
 
 class ControlmContainer:
@@ -77,7 +78,9 @@ class ControlmFolder:
             self.filename = xml_input
 
             try:
-                self._base = parse(xml_input).getroot().find(TagXml.FOLDER)
+                self._tree = parse(xml_input)
+                self._root = self._tree.getroot()
+                self._base = self._root.find(TagXml.FOLDER)
                 self.name = self._base.get(TagXml.NOMBRE_MALLA)
             except (ParseError, AttributeError) as error_xml:
                 mensaje = f"Archivo xml [{xml_input}] corrupto o mal formado. Revisar que posea el formato correcto de xml y respete la estructura de malla exportada de Control-m"
@@ -977,6 +980,7 @@ class MallaMaxi:
         :param cadena_jobnames: Lista de jobs que se deben transformar a temporales
         :param malla_origen: Malla que contiene los jobs
         """
+        self.cadena_completa_temporal = None
         self.cadena_primordial = None
         self._trabajos_seleccionados = cadena_jobnames
         self._malla_origen = malla_origen
@@ -1018,28 +1022,22 @@ class MallaMaxi:
                         )
                     break
 
+            # Sacamos aquellos que no fueron seleccionados
             cadena_final_tmp.append(
                 list(
                     filter(
                         lambda x: x[0] in [trabajo.name for trabajo in self._trabajos_seleccionados],
-                        # Sacamos aquellos que no fueron seleccionados
                         cadena_con_orden)
                 )
             )
 
-        cadena_primordial = [e[0] for lista in cadena_final_tmp for e in lista]
-        cadena_primordial = list(map(self._malla_origen.obtener_job, cadena_primordial))
-
-        self.cadena_primordial = cadena_primordial
-
-        for job in cadena_primordial:
-            self._ambientar_name(job)
-
-        for index, job in enumerate(cadena_primordial):
-            self._ambientar_marcas(job, index)
+        self.cadena_primordial = [e[0] for lista in cadena_final_tmp for e in lista]
+        self.cadena_primordial = list(map(self._malla_origen.obtener_job, self.cadena_primordial))
 
     @property
-    def job_suffix(self):
+    def job_suffix(self) -> str:
+        """Retorna la secuencia de 3 dígitos que siguen a un jobname. Esto se realiza en base al _job_suffix_count, que
+        se deben incrementar cada vez que se utilice"""
         return f"9{self._job_suffix_count:03}"
 
     def _ambientar_name(self, job: ControlmJob):
@@ -1085,15 +1083,32 @@ class MallaMaxi:
                         mediante_accion=False
                     ))]
 
-    def replicar(self):
+    def replicar_y_enlazar(self, odates_seleccionados: list):
         """
-
+        Replica una cadena primordial tantas veces como haya ODATES (seleccionados) desde los cuales se requieran
+        ejecutar cada cadena. Luego une los jobs mediante marcas y los deja en una sola linea
         """
+        cadena_temporal = []
+        cadena_temporal.extend(self.cadena_primordial)
+        for _ in range(len(odates_seleccionados)-1):
+            cadena_temporal.extend(deepcopy(self.cadena_primordial))
 
-    def enlazar(self):
-        pass
+        # Pasamos a 9XXX
+        for job in cadena_temporal:
+            self._ambientar_name(job)
+
+        # Borramos marcas y enlazamos todos los jobs
+        for index, job in enumerate(cadena_temporal):
+            self._ambientar_marcas(job, index)
+
+        # TODO: Agregar los odates a cada cadena cada n (cant objetos en cadena primordial) objetos
+
+        self.cadena_completa_temporal = cadena_temporal
 
     def ambientar(self):
+        """
+        Ambienta los jobs a malla
+        """
         pass
 
     def exportar(self) -> Element:  # TODO: ETREE
