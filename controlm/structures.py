@@ -430,7 +430,7 @@ class ControlmJob:
 
         :return: diccionario con la info del jobname
         """
-        return self._match_dataproc_id.groupdict() if self.dataproc_id is not None else None
+        return self._match_dataproc_namespace.groupdict() if self.dataproc_namespace is not None else None
 
     def jobname_valido(self) -> bool:
         """
@@ -1095,7 +1095,6 @@ class MallaMaxi:
         Replica una cadena primordial tantas veces como haya ODATES (seleccionados) desde los cuales se requieran
         ejecutar cada cadena. Luego une los jobs mediante marcas y los deja en una sola 'linea'
         """
-
         odates = [odate.strftime("%Y%m%d") for odate in odates_seleccionados]
 
         # Generamos n odates como elementos haya en la cadena primordial. Esto es porque tenemos que asignarle un odate
@@ -1117,20 +1116,59 @@ class MallaMaxi:
         # con sus jobnames ambientados a malla temporal. De paso
         for index, job in enumerate(cadena_temporal):
             self._ambientar_name(job)
-            job.odate = odates_list_temp[index]  # Esto es mucho muy importante
+            job.odate = odates_list_temp[index] # Esto es mucho muy importante
+
 
         # Enlazamos todos los jobs
         self._ambientar_marcas(cadena_temporal)
-
-        # TODO: Agregar los odates a cada cadena cada n (cant objetos en cadena primordial) objetos
-
         self.cadena_completa_temporal = cadena_temporal
 
-    def ambientar(self):
+
+    def ambientar(self, mail: str, folder_name: str,caso_d_uso: str):
         """
         Ambienta los jobs a malla
         """
-        pass
+        #Cambio el valor %%ODATE por fecha seleccionada, en cada job de la cadena
+
+        for job in self.cadena_completa_temporal:
+            job: ControlmJob
+            for name, value in job.variables.items():
+                if '%%$ODATE' in value:
+                    job.variables = value.replace('%%$ODATE',job.odate)
+                elif '%%MAIL' in value:
+                    job.variables = value.replace('%%MAIL',mail)
+                elif '.dev' in value:
+                    job.variables = value.replace('.dev','.pro')
+
+            for condition_name,actions in job.onconditions.items():
+                for action in actions:
+                    if action.id == 'DOMAIL':
+                        action.attrs['CC_DEST'] = mail
+                        action.attrs['SUBJECT'] = action.attrs['SUBJECT'].replace('Job',caso_d_uso +' - Job')
+
+
+            job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
+            job.atributos.pop('DAYSCAL',None)
+            job.atributos.pop('DAYS', None)
+            job.atributos['MAXWAIT'] = 0
+            job.atributos['PARENT_FOLDER'] = folder_name
+            job.recursos_cuantitativos = ['ARD','ARD-TMP']
+
+
+            #TODO: CREATED_BY DEBERIA DEJAR EL LEGAJO DEL USUARIO QUE CREA LA MALLA
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def exportar(self) -> Element:
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
