@@ -1044,62 +1044,83 @@ class MallaMaxi:
         job.name = job.name[:-4] + self.job_suffix
         self._job_suffix_count += 1
 
-    def _ambientar_marcas(self, job: ControlmJob, index: int):
-        if index == 0:
+    @staticmethod
+    def _ambientar_marcas(cadena: list[ControlmJob]):
+
+        for job in cadena:
             job.marcasin = None
-        else:
-            job.marcasin = [
-                ControlmMarcaIn(
-                    marca_nombre=f'{self.cadena_primordial[index - 1]}-TO-{job.name}',
-                    odate_esperado='ODAT'
-                )]
-
-        if index == len(self.cadena_primordial) - 1:
             job.marcasout = None
-        else:
-            job.marcasout = [
-                ControlmMarcaOut(
-                    marca_nombre=f'{job.name}-TO-{self.cadena_primordial[index + 1]}',
-                    odate_esperado='ODAT',
-                    signo='+',
-                    mediante_accion=False
-                )]
 
-        if job.marcasin is not None:
-            try:
-                job.marcasout.append(
+        for index, job in enumerate(cadena):
+            if job is cadena[0]:
+                job.marcasin = None
+            else:
+                job.marcasin = [
+                    ControlmMarcaIn(
+                        marca_nombre=f'{cadena[index-1].name}-TO-{job.name}',
+                        odate_esperado='ODAT'
+                    )]
+
+            if job is cadena[-1]:
+                job.marcasout = None
+            else:
+                job.marcasout = [
                     ControlmMarcaOut(
-                        marca_nombre=f'{self.cadena_primordial[index - 1]}-TO-{job.name}',
+                        marca_nombre=f'{job.name}-TO-{cadena[index+1].name}',
                         odate_esperado='ODAT',
-                        signo='-',
+                        signo='+',
                         mediante_accion=False
-                    ))
-            except AttributeError:
-                job.marcasout = [(
-                    ControlmMarcaOut(
-                        marca_nombre=f'{self.cadena_primordial[index - 1]}-TO-{job.name}',
-                        odate_esperado='ODAT',
-                        signo='-',
-                        mediante_accion=False
-                    ))]
+                    )]
+
+            if job.marcasin is not None:
+                try:
+                    job.marcasout.append(
+                        ControlmMarcaOut(
+                            marca_nombre=f'{cadena[index-1]}-TO-{job.name}',
+                            odate_esperado='ODAT',
+                            signo='-',
+                            mediante_accion=False
+                        ))
+                except AttributeError:
+                    job.marcasout = [(
+                        ControlmMarcaOut(
+                            marca_nombre=f'{cadena[index-1]}-TO-{job.name}',
+                            odate_esperado='ODAT',
+                            signo='-',
+                            mediante_accion=False
+                        ))]
 
     def replicar_y_enlazar(self, odates_seleccionados: list):
         """
         Replica una cadena primordial tantas veces como haya ODATES (seleccionados) desde los cuales se requieran
-        ejecutar cada cadena. Luego une los jobs mediante marcas y los deja en una sola linea
+        ejecutar cada cadena. Luego une los jobs mediante marcas y los deja en una sola 'linea'
         """
+
+        odates = [odate.strftime("%Y%m%d") for odate in odates_seleccionados]
+
+        # Generamos n odates como elementos haya en la cadena primordial. Esto es porque tenemos que asignarle un odate
+        # a cada job
+        odates_list_temp = []
+        for odate in odates:
+            odates_list_temp.extend([odate] * len(self.cadena_primordial))
+
+        # Replicamos la cadena temporal, tantas veces como tengamos odates
         cadena_temporal = []
         cadena_temporal.extend(self.cadena_primordial)
-        for _ in range(len(odates_seleccionados)-1):
+        for _ in range(len(odates_seleccionados) - 1):
             cadena_temporal.extend(deepcopy(self.cadena_primordial))
 
-        # Pasamos a 9XXX
-        for job in cadena_temporal:
-            self._ambientar_name(job)
+        if len(cadena_temporal) != len(odates_list_temp):
+            raise Exception(f"Ocurrió un error al asociar odates a los jobs temporales {cadena_temporal}, {odates_list_temp}. La cantidad de elementos no puede ser distinta")
 
-        # Borramos marcas y enlazamos todos los jobs
+        # Pasamos a 9XXX, se tiene que hacer de a partes debido a que las marcas necesitan que estén todas las cadenas
+        # con sus jobnames ambientados a malla temporal. De paso
         for index, job in enumerate(cadena_temporal):
-            self._ambientar_marcas(job, index)
+            self._ambientar_name(job)
+            job.odate = odates_list_temp[index]  # Esto es mucho muy importante
+
+        # Enlazamos todos los jobs
+        self._ambientar_marcas(cadena_temporal)
 
         # TODO: Agregar los odates a cada cadena cada n (cant objetos en cadena primordial) objetos
 
@@ -1111,5 +1132,6 @@ class MallaMaxi:
         """
         pass
 
-    def exportar(self) -> Element:  # TODO: ETREE
+    def exportar(self) -> Element:
+        """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
         pass
