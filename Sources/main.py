@@ -292,6 +292,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     m_max.ordenar()
     m_max.replicar_y_enlazar(fechas_a_iterar)
     m_max.ambientar(mail_personal,new_folder_name,caso_de_uso)
+    m_max.exportar(new_folder_name)
 
     return new_filename
 

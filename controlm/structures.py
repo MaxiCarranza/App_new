@@ -1116,60 +1116,111 @@ class MallaMaxi:
         # con sus jobnames ambientados a malla temporal. De paso
         for index, job in enumerate(cadena_temporal):
             self._ambientar_name(job)
-            job.odate = odates_list_temp[index] # Esto es mucho muy importante
-
+            job.odate = odates_list_temp[index]  # Esto es mucho muy importante
 
         # Enlazamos todos los jobs
         self._ambientar_marcas(cadena_temporal)
         self.cadena_completa_temporal = cadena_temporal
 
-
-    def ambientar(self, mail: str, folder_name: str,caso_d_uso: str):
+    def ambientar(self, mail: str, folder_name: str, caso_d_uso: str):
         """
         Ambienta los jobs a malla
         """
-        #Cambio el valor %%ODATE por fecha seleccionada, en cada job de la cadena
-
+        # FIXME: Funciona mal con el job AMOLCP0012 CR-ARMOLDIA-T02, destruye las variables y las deja como string. REVISAR
+        # Cambio el valor %%ODATE por fecha seleccionada, en cada job de la cadena
         for job in self.cadena_completa_temporal:
             job: ControlmJob
             for name, value in job.variables.items():
                 if '%%$ODATE' in value:
-                    job.variables = value.replace('%%$ODATE',job.odate)
+                    job.variables = value.replace('%%$ODATE', job.odate)
                 elif '%%MAIL' in value:
-                    job.variables = value.replace('%%MAIL',mail)
+                    job.variables = value.replace('%%MAIL', mail)
                 elif '.dev' in value:
-                    job.variables = value.replace('.dev','.pro')
+                    job.variables = value.replace('.dev', '.pro')
 
-            for condition_name,actions in job.onconditions.items():
+            for condition_name, actions in job.onconditions.items():
                 for action in actions:
                     if action.id == 'DOMAIL':
                         action.attrs['CC_DEST'] = mail
-                        action.attrs['SUBJECT'] = action.attrs['SUBJECT'].replace('Job',caso_d_uso +' - Job')
-
+                        action.attrs['SUBJECT'] = action.attrs['SUBJECT'].replace('Job', caso_d_uso + ' - Job')
 
             job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
-            job.atributos.pop('DAYSCAL',None)
+            job.atributos.pop('DAYSCAL', None)
             job.atributos.pop('DAYS', None)
             job.atributos['MAXWAIT'] = 0
             job.atributos['PARENT_FOLDER'] = folder_name
-            job.recursos_cuantitativos = ['ARD','ARD-TMP']
+            job.recursos_cuantitativos = ['ARD', 'ARD-TMP']
 
+            # TODO: CREATED_BY DEBERIA DEJAR EL LEGAJO DEL USUARIO QUE CREA LA MALLA
 
-            #TODO: CREATED_BY DEBERIA DEJAR EL LEGAJO DEL USUARIO QUE CREA LA MALLA
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def exportar(self) -> Element:
+    def exportar(self, folder_name: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
-        pass
+        import xml.etree.ElementTree as ET
+
+        root = ET.Element("DEFTABLE")
+        root.attrib['xmlns:xsi'] = "http://www.w3.org/2001/XMLSchema-instance"
+        # root.attrib['xsi:noNamespaceSchemaLocation'] = "Folder.xsd" TODO: SACAR
+
+        folder = ET.SubElement(root, "FOLDER")
+        folder.attrib['DATACENTER'] = "CTM_CTRLMCCR"
+        folder.attrib['VERSION'] = "919"
+        folder.attrib['PLATFORM'] = "UNIX"
+        folder.attrib['FOLDER_NAME'] = folder_name
+        folder.attrib['MODIFIED'] = "False"
+        folder.attrib['LAST_UPLOAD'] = "20240925182750UTC"
+        folder.attrib['FOLDER_ORDER_METHOD'] = "SYSTEM"
+        folder.attrib['REAL_FOLDER_ID'] = "6934"
+        folder.attrib['TYPE'] = "1"
+
+        for job in self.cadena_completa_temporal:
+            job: ControlmJob
+
+            job_element = ET.SubElement(folder, 'JOB', job.atributos)
+            job_element.attrib['JOBNAME'] = job.name
+            job_element.attrib['PARENT_FOLDER'] = folder_name
+
+            for var_name, var_value in job.variables.items():
+                ET.SubElement(job_element, 'VARIABLE', {'NAME': var_name, 'VALUE': var_value})
+
+            if job.marcasin is not None:
+                for marca_in in job.marcasin:
+                    ET.SubElement(job_element, 'INCOND', {'NAME': marca_in.name, 'ODATE': 'ODAT', 'AND_OR': 'A'})
+
+            if job.marcasout is not None:
+                for marca_in in job.marcasout:
+                    ET.SubElement(job_element, 'OUTCOND', {'NAME': marca_in.name, 'ODATE': 'ODAT', 'SIGN': marca_in.signo})
+
+            for rrcc in job.recursos_cuantitativos:
+                ET.SubElement(job_element, 'QUANTITATIVE', {'NAME': rrcc.name, 'QUANT': '1', 'ONFAIL': 'R', 'ONOK': 'R'})
+
+            for condition_id, actions in job.onconditions.items():
+                condition_element = ET.SubElement(job_element, 'ON', {'CODE': condition_id})
+                for action in actions:
+                    ET.SubElement(condition_element, action.id, action.attrs)
+
+        tree = ET.ElementTree(root)
+        ET.indent(tree, space='\t', level=0)
+        tree.write(f'{folder_name}.xml', encoding='utf-8', xml_declaration=True)
+
+
+if __name__ == '__main__':
+
+    # Script para testear
+    import datetime
+    from pprint import pprint
+
+    malla = ControlmFolder('C:\\Users\\Gaston\\PycharmProjects\\App_new\\30-09-2024 03-25-30 p.m. Folder CR-ARMOLDIA-T02 (1).xml')
+    jobs = [job for job in malla.jobs() if job.name in ['AMOLCP0010', 'AMOLPP0004', 'AMOLSP0105', 'AMOLCP0012', 'AMOLVP0186']]
+
+    m_max = MallaMaxi(jobs, malla)
+    m_max.ordenar()
+
+    fechas_a_iterar = [
+        datetime.datetime.now(),
+        datetime.datetime(2024, 10, 14),
+        datetime.datetime(2024, 10, 11)
+    ]
+
+    m_max.replicar_y_enlazar(fechas_a_iterar)
+    # m_max.ambientar('gmongelos@bbva.com', 'OOOOCA', 'ALERTA_DE_B0LIT4')
+    m_max.exportar('OOOOCA')
