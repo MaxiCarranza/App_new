@@ -67,6 +67,7 @@ fechas_seleccionadas = []
 selected_jobs_global = set()
 
 REGEX_MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
+REGEX_LEGAJO = r'^[A-Za-z]\d+$'
 
 
 class JobData:
@@ -344,8 +345,12 @@ def confirmar_seleccion():
     global modified_file_path, selected_jobs_listbox, caso_uso_var, mail_entry, start_date_entry, end_date_entry, job_listbox
 
     email = mail_entry.get()
+    legajo = legajo_var.get()
     if not validate_email(email):
         messagebox.showerror("Mail inválido", "Por favor, ingrese un Mail válido.")
+        return
+    if not validate_legajo(legajo):
+        messagebox.showerror("Legajo inválido", "Por favor, ingrese un Legajo válido.")
         return
 
     selected_jobs = list(selected_jobs_global)
@@ -460,23 +465,32 @@ def validate_email(email):
     else:
         return False
 
+def validate_legajo(legajo):
+    if re.fullmatch(REGEX_LEGAJO, legajo):
+        return True
+    else:
+        return False
+
 
 def interfaz_seleccion_job():
-    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox
+    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox,legajo_var
 
     tk.Label(dias_jobs_frame, text="Mail:", font=("Arial", 12), bg="white").grid(row=3, column=2, sticky="e", pady=5,
                                                                                  padx=5)
     mail_entry = tk.Entry(dias_jobs_frame, font=("Arial", 12))
     mail_entry.grid(row=3, column=3, pady=5, padx=5)
 
-    tk.Label(dias_jobs_frame, text="Caso de Uso:", font=("Arial", 12), bg="white").grid(row=4, column=2, sticky="e",
+    tk.Label(dias_jobs_frame, text="Legajo / Caso de uso:", font=("Arial", 12), bg="white").grid(row=4, column=2, sticky="e",
                                                                                         pady=5, padx=5)
-    caso_uso_var = tk.StringVar(value="Reliability")
+    caso_uso_var = tk.StringVar(value="RELIABILITY")
     caso_uso_menu = tk.OptionMenu(dias_jobs_frame, caso_uso_var, "CDD/BAU", "HORIZON A", "HORIZON B", "HORIZON C",
-                                  "DATIO EVO", "ADA", "Digital work place", "Reliability", "ALPHA", "Reclamos",
+                                  "DATIO EVO", "ADA", "DIGITAL WORK PLACE", "RELIABILITY", "ALPHA", "RECLAMO",
                                   "BCBS239")
-    caso_uso_menu.config(font=("Arial", 12))
-    caso_uso_menu.grid(row=4, column=3, pady=5, padx=5)
+    caso_uso_menu.config(font=("Arial", 10))
+    caso_uso_menu.grid(row=4, column=3, pady=5, padx=(100,0))
+
+    legajo_var = tk.Entry(dias_jobs_frame, font=("Arial", 12), width=8)
+    legajo_var.grid(row=4, column=3, pady=5, padx=(0,120))
 
     attachment_button = tk.Button(dias_jobs_frame, text="Adjuntar malla", command=select_attached_file,
                                   font=("Arial", 12))
