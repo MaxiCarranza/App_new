@@ -545,17 +545,18 @@ def abrir_calendario():
     # Asignar acción al hacer clic en una fecha
     calendario.bind("<<CalendarSelected>>", lambda event: seleccionar_fecha(calendario))
 
+def actualizar_estado_entradas():
+    # Verifica el valor de seleccion_var y deshabilita o habilita los DateEntry según corresponda
+    if seleccion_var.get() == "carga_manual":
+        start_date_entry.config(state='disabled')
+        end_date_entry.config(state='disabled')
+    else:
+        start_date_entry.config(state='normal')
+        end_date_entry.config(state='normal')
+        calendario_button.config(state='disabled')
 
 def actualizar_interfaz():
-    global dias_jobs_frame
-    global seleccion_var
-    global fechas_seleccionadas
-    global start_date_entry
-    global end_date_entry
-
-    # Limpiar widgets previos
-    for widget in dias_jobs_frame.winfo_children():
-        widget.grid_forget()
+    global dias_jobs_frame, seleccion_var, fechas_seleccionadas, start_date_entry, end_date_entry,calendario_button
 
     titulo_label = tk.Label(dias_jobs_frame, text="Generador Mallas Reliability", font=("Arial", 16, "bold"),
                             bg="white")
@@ -563,31 +564,27 @@ def actualizar_interfaz():
     titulo_label.grid(row=0, column=1, columnspan=3, pady=10)
 
     tk.Radiobutton(dias_jobs_frame, text="Seleccionar todos los días", variable=seleccion_var, value="todos_los_dias",
-                   font=("Arial", 12), bg="white").grid(row=2, column=1, sticky="w", padx=10, pady=5)
+                   font=("Arial", 12), bg="white",command=actualizar_estado_entradas).grid(row=2, column=1, sticky="w", padx=10, pady=5)
     tk.Radiobutton(dias_jobs_frame, text="Seleccionar días hábiles", variable=seleccion_var, value="dias_habiles",
-                   font=("Arial", 12), bg="white").grid(row=3, column=1, sticky="w", padx=10, pady=5)
+                   font=("Arial", 12), bg="white",command=actualizar_estado_entradas).grid(row=3, column=1, sticky="w", padx=10, pady=5)
     tk.Radiobutton(dias_jobs_frame, text="Carga manual (sin rango)", variable=seleccion_var, value="carga_manual",
-                   font=("Arial", 12), bg="white").grid(row=4, column=1, sticky="w", padx=10, pady=5)
+                   font=("Arial", 12), bg="white",command=actualizar_estado_entradas).grid(row=4, column=1, sticky="w", padx=10, pady=5)
 
-    if seleccion_var.get() == "carga_manual":
-        tk.Button(dias_jobs_frame, text="Calendario manual", font=("Arial", 12), bg="white",
-                  command=abrir_calendario).grid(row=1, column=3, padx=10, pady=10)
+    calendario_button = tk.Button(dias_jobs_frame, text="Calendario manual", font=("Arial", 12), bg="white",
+              command=abrir_calendario)
+    calendario_button.grid(row=0, column=3, padx=10, pady=(100,0))
 
-        # interfaz_seleccion_job()
+    tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12), bg="white").grid(row=1, column=2, sticky="e",
+                                                                                  pady=5, padx=5)
+    start_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white',
+                                 borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy', state='readonly')
+    start_date_entry.grid(row=1, column=3, pady=5, padx=5)
 
-    else:
-        # Mostrar las opciones "Desde" y "Hasta"
-        tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12), bg="white").grid(row=1, column=2, sticky="e",
-                                                                                      pady=5, padx=5)
-        start_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white',
-                                     borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy')
-        start_date_entry.grid(row=1, column=3, pady=5, padx=5)
-
-        tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12), bg="white").grid(row=2, column=2, sticky="e",
-                                                                                      pady=5, padx=5)
-        end_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white', borderwidth=2,
-                                   font=("Arial", 12), date_pattern='dd/MM/yyyy')
-        end_date_entry.grid(row=2, column=3, pady=5, padx=5)
+    tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12), bg="white").grid(row=2, column=2, sticky="e",
+                                                                                  pady=5, padx=5)
+    end_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white', borderwidth=2,
+                               font=("Arial", 12), date_pattern='dd/MM/yyyy', state='readonly')
+    end_date_entry.grid(row=2, column=3, pady=5, padx=5)
 
     interfaz_seleccion_job()
 
