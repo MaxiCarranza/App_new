@@ -555,7 +555,6 @@ def abrir_calendario():
               command=lambda: [guardar_fecha(calendario.get_date()), ventana_calendario.destroy()]).grid(row=1,
                                                                                                          column=0,
                                                                                                          pady=10)
-
     # Asignar acción al hacer clic en una fecha
     calendario.bind("<<CalendarSelected>>", lambda event: seleccionar_fecha(calendario))
 
