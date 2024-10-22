@@ -7,6 +7,7 @@ from __future__ import annotations
 import itertools
 import random
 import re
+import io
 
 from typing import Literal
 from copy import deepcopy
@@ -1122,21 +1123,20 @@ class MallaMaxi:
         self._ambientar_marcas(cadena_temporal)
         self.cadena_completa_temporal = cadena_temporal
 
-    def ambientar(self, mail: str, folder_name: str, caso_d_uso: str):
+    def ambientar(self, mail: str, folder_name: str, caso_d_uso: str, legajo: str):
         """
         Ambienta los jobs a malla
         """
-        # FIXME: Funciona mal con el job AMOLCP0012 CR-ARMOLDIA-T02, destruye las variables y las deja como string. REVISAR
         # Cambio el valor %%ODATE por fecha seleccionada, en cada job de la cadena
         for job in self.cadena_completa_temporal:
             job: ControlmJob
             for name, value in job.variables.items():
                 if '%%$ODATE' in value:
-                    job.variables = value.replace('%%$ODATE', job.odate)
+                    job.variables[name] = value.replace('%%$ODATE', job.odate)
                 elif '%%MAIL' in value:
-                    job.variables = value.replace('%%MAIL', mail)
+                    job.variables[name] = value.replace('%%MAIL', mail)
                 elif '.dev' in value:
-                    job.variables = value.replace('.dev', '.pro')
+                    job.variables[name] = value.replace('.dev', '.pro')
 
             for condition_name, actions in job.onconditions.items():
                 for action in actions:
@@ -1147,9 +1147,14 @@ class MallaMaxi:
             job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
             job.atributos.pop('DAYSCAL', None)
             job.atributos.pop('DAYS', None)
-            job.atributos['MAXWAIT'] = 0
+            job.atributos['MAXWAIT'] = '0'
             job.atributos['PARENT_FOLDER'] = folder_name
-            job.recursos_cuantitativos = ['ARD', 'ARD-TMP']
+            job.recursos_cuantitativos = [
+                ControlmRecursoCuantitativo(name='ARD'),
+                ControlmRecursoCuantitativo(name='ARD-TMP')
+            ]
+            job.atributos['CREATED_BY'] = legajo
+
 
             # TODO: CREATED_BY DEBERIA DEJAR EL LEGAJO DEL USUARIO QUE CREA LA MALLA
 
@@ -1168,7 +1173,7 @@ class MallaMaxi:
         folder.attrib['FOLDER_NAME'] = folder_name
         folder.attrib['MODIFIED'] = "False"
         folder.attrib['LAST_UPLOAD'] = "20240925182750UTC"
-        folder.attrib['FOLDER_ORDER_METHOD'] = "SYSTEM"
+        folder.attrib['FOLDER_ORDER_METHOD'] = "PRUEBAS"
         folder.attrib['REAL_FOLDER_ID'] = "6934"
         folder.attrib['TYPE'] = "1"
 
@@ -1199,8 +1204,12 @@ class MallaMaxi:
                     ET.SubElement(condition_element, action.id, action.attrs)
 
         tree = ET.ElementTree(root)
+        xml_buffer = io.BytesIO()
         ET.indent(tree, space='\t', level=0)
-        tree.write(f'{folder_name}.xml', encoding='utf-8', xml_declaration=True)
+        tree.write(xml_buffer, encoding='utf-8', xml_declaration=True)
+
+        return xml_buffer
+
 
 
 if __name__ == '__main__':

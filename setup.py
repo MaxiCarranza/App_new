@@ -4,7 +4,7 @@ from cx_Freeze import setup, Executable
 executables = [Executable("Sources/main.py", target_name="generador_aut.exe", base="Win32GUI", icon="Sources/imagen/bbva.ico")]
 
 buildOptions = {
-    'packages': ['pandas', 'tkcalendar', 'collections', 'requests', 'pickle', 'Sources.funciones_control_m'],
+    'packages': ['pandas', 'tkcalendar', 'collections', 'requests', 'pickle', 'controlm.structures'],
     'excludes': [],
     'include_files': [
         ('Sources/imagen/bbva.ico', 'Sources/imagen/bbva.ico'),

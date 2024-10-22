@@ -265,7 +265,7 @@ def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_p
 
 ##################FUNCIONES NUEVAS ###############################
 
-def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,
+def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,
                     fechas_manual=None):
     """
     Función para modificar la malla.
@@ -292,11 +292,10 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     m_max = MallaMaxi(jobs_to_duplicate, malla)
     m_max.ordenar()
     m_max.replicar_y_enlazar(fechas_a_iterar)
-    m_max.ambientar(mail_personal,new_folder_name,caso_de_uso)
-    m_max.exportar(new_folder_name)
+    m_max.ambientar(mail_personal,new_folder_name,caso_de_uso,legajo)
+    xml_buffer = m_max.exportar(new_folder_name)
 
-    return new_filename
-
+    return new_folder_name
 
 def select_attached_file():
     global attached_file_path, jobs, malla
@@ -324,10 +323,8 @@ def select_attached_file():
 
         messagebox.showinfo("Éxito", "Archivo adjunto cargado correctamente.")
 
-
 def save_job():
-    global new_filename, xml_buffer
-    if not new_filename or not xml_buffer:
+    if not new_folder_name or not xml_buffer:
         messagebox.showwarning("Advertencia", "No hay malla modificada para descargar o el archivo no existe.")
         return
 
@@ -358,7 +355,7 @@ def confirmar_seleccion():
     if selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() != "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), start_date_entry.get_date(),
                                              end_date_entry.get_date(), selected_jobs, caso_uso_var.get(),
-                                             seleccion_var.get(), None)
+                                             seleccion_var.get(),legajo_var.get(), None)
         messagebox.showinfo("Éxito", "La malla ha sido modificada y guardada temporalmente.")
 
     elif selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() == "carga_manual":
