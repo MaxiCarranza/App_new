@@ -110,21 +110,6 @@ class MarcaOut:
         self.name = name
         self.signo = signo
 
-
-# def preparar_datos_para_digrafo(jobs: list[Element]): TODO: BORRAME
-#     job_data = []
-#     for job in jobs:
-#         job_name = job.get('JOBNAME')
-#
-#         marcasout = [MarcaOut(marca.get('NAME'), marca.get('SIGN')) for marca in job.findall('.//OUTCOND')]
-#         marcasin = [MarcaOut(marca.get('NAME'), marca.get('SIGN')) for marca in job.findall('.//INCOND')]
-#
-#         if job_name:
-#             job_data.append(JobData(name=job_name, marcasout=marcasout, marcasin=marcasin))
-#
-#     return job_data
-
-
 def es_fecha_valida(fecha):
     try:
         response = requests.get(api_url)
@@ -196,74 +181,6 @@ def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manua
     return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
 
 
-def procesar_job_para_fecha(job, current_date, mail_personal, caso_de_uso, app_prefix, random_number, random_job_suffix,
-                            job_suffix_count):
-    """
-    Procesa y duplica un job para la fecha dada, aplicando las modificaciones necesarias.
-    """
-    original_job_name = job.get('JOBNAME')
-    new_job = ET.Element("JOB", job.attrib)
-    new_job.attrib = job.attrib.copy()
-
-    new_job_name = original_job_name[:-4] + f"{job_suffix_count:04}"
-    new_job.set('JOBNAME', new_job_name)
-
-    # Modificación de variables
-    for var in job.findall('.//VARIABLE'):
-        modified_var_attrib = var.attrib.copy()
-        if '%%$ODATE' in modified_var_attrib.get('VALUE', ''):
-            modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%$ODATE',
-                                                                                current_date.strftime('%Y%m%d'))
-        if '%%MAIL' in modified_var_attrib.get('VALUE', ''):
-            modified_var_attrib['VALUE'] = modified_var_attrib['VALUE'].replace('%%MAIL', mail_personal)
-        ET.SubElement(new_job, "VARIABLE", modified_var_attrib)
-
-    # Modificación de ON
-    for on_element in job.findall('.//ON'):
-        new_on = ET.SubElement(new_job, "ON", {k: (v if v is not None else '') for k, v in on_element.attrib.items()})
-        for sub_element in on_element:
-            new_sub_element = ET.SubElement(new_on, sub_element.tag, sub_element.attrib)
-            new_sub_element.text = sub_element.text
-            if sub_element.get('CC_DEST'):
-                new_sub_element.set('CC_DEST', mail_personal)
-            if 'Ok' in sub_element.get('SUBJECT', ''):
-                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Ok', caso_de_uso))
-            if 'Cancelo' in sub_element.get('SUBJECT', ''):
-                new_sub_element.set('SUBJECT', sub_element.get('SUBJECT').replace('Cancelo', caso_de_uso))
-
-    # Modificación de QUANTITATIVE
-    qua_existe = {"ARD": False, "ARD-TMP": False}
-    for qua in job.findall('.//QUANTITATIVE'):
-        modified_qua_attrib = {k: (v if v is not None else '') for k, v in qua.attrib.items()}
-        qua_name = modified_qua_attrib.get("NAME")
-
-        if qua_name in qua_existe:
-            qua_existe[qua_name] = True
-
-        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
-
-    if not qua_existe["ARD"]:
-        modified_qua_attrib = {"QUANT": "1", "ONFAIL": "R", "ONOK": "R", "NAME": "ARD"}
-        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib)
-
-    if not qua_existe["ARD-TMP"]:
-        modified_qua_attrib_tmp = {"QUANT": "1", "ONFAIL": "R", "ONOK": "R", "NAME": "ARD-TMP"}
-        ET.SubElement(new_job, "QUANTITATIVE", modified_qua_attrib_tmp)
-
-    # Ajustes finales
-    new_job.set('SUB_APPLICATION', "DATIO-AR-P")
-    new_parent_folder = f"CR-AR{app_prefix}TMP-T{random_number}"
-    new_job.set('PARENT_FOLDER', new_parent_folder)
-    new_job.set('MAXWAIT', "0")
-    scheduling = new_job.attrib.pop('DAYSCAL', None)
-    scheduling_calen = new_job.attrib.pop('DAYS', None)
-    create_user_by = new_job.attrib.pop('CREATED_BY', None)
-
-    job_suffix_count += 1
-    return (new_job, current_date, original_job_name, job_suffix_count)
-
-
-##################FUNCIONES NUEVAS ###############################
 
 def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,
                     fechas_manual=None):
@@ -336,7 +253,6 @@ def save_job():
             f.write(xml_buffer.getvalue())
         messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
 
-
 def confirmar_seleccion():
 
     global modified_file_path, selected_jobs_listbox, caso_uso_var, mail_entry, start_date_entry, end_date_entry, job_listbox
@@ -375,19 +291,16 @@ def confirmar_seleccion():
     else:
         messagebox.showwarning("Advertencia", "Por favor, adjunte un archivo y al menos un job.")
 
-
 def get_next_valid_date(fecha):
     while not es_fecha_valida(fecha):
         fecha += timedelta(days=1)
     return fecha
-
 
 def update_selected_jobs_listbox():
     global selected_jobs_global, selected_jobs_listbox
     selected_jobs_listbox.delete(0, tk.END)
     for job in selected_jobs_global:
         selected_jobs_listbox.insert(tk.END, job)
-
 
 def filtrar_jobs(event):
     global jobs, attached_file_path, selected_jobs_global
@@ -427,7 +340,6 @@ def filtrar_jobs(event):
 
     update_selected_jobs_listbox()
 
-
 def on_job_click(event):
     global selected_jobs_global
 
@@ -443,18 +355,15 @@ def on_job_click(event):
 
     update_selected_jobs_listbox()
 
-
 def on_entry_click(event):
     if entry_buscar.get() == "Seleccione jobs":
         entry_buscar.delete(0, tk.END)  # Eliminar el texto
         entry_buscar.config(fg='black')
 
-
 def on_focusout(event):
     if entry_buscar.get() == "":
         entry_buscar.insert(0, "Seleccione jobs")
         entry_buscar.config(fg='grey')
-
 
 def validate_email(email):
     if re.fullmatch(REGEX_MAILS, email):
@@ -467,7 +376,6 @@ def validate_legajo(legajo):
         return True
     else:
         return False
-
 
 def interfaz_seleccion_job():
     global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox,legajo_var
@@ -528,12 +436,10 @@ def interfaz_seleccion_job():
     save_button = tk.Button(dias_jobs_frame, text="Descargar Temporal", command=save_job, font=("Arial", 12), width=20)
     save_button.grid(row=9, column=1, columnspan=2, padx=(200, 0), pady=8)
 
-
 def guardar_fecha(fecha):
     global fechas_seleccionadas
     fecha_obj = datetime.strptime(fecha, "%m/%d/%y").date()
     fechas_seleccionadas.append(fecha_obj)
-
 
 def abrir_calendario():
     global fechas_seleccionadas
@@ -561,8 +467,8 @@ def actualizar_estado_entradas():
         start_date_entry.config(state='disabled')
         end_date_entry.config(state='disabled')
     else:
-        start_date_entry.config(state='normal')
-        end_date_entry.config(state='normal')
+        start_date_entry.config(state="readonly")
+        end_date_entry.config(state="readonly")
         calendario_button.config(state='disabled')
 
 def actualizar_interfaz():
@@ -587,17 +493,16 @@ def actualizar_interfaz():
     tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12), bg="white").grid(row=1, column=2, sticky="e",
                                                                                   pady=5, padx=5)
     start_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white',
-                                 borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy', state='readonly')
+                                 borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy',state="readonly")
     start_date_entry.grid(row=1, column=3, pady=5, padx=5)
 
     tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12), bg="white").grid(row=2, column=2, sticky="e",
                                                                                   pady=5, padx=5)
     end_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white', borderwidth=2,
-                               font=("Arial", 12), date_pattern='dd/MM/yyyy', state='readonly')
+                               font=("Arial", 12), date_pattern='dd/MM/yyyy',state="readonly")
     end_date_entry.grid(row=2, column=3, pady=5, padx=5)
 
     interfaz_seleccion_job()
-
 
 def seleccionar_fecha(calendario):
     fecha_str = calendario.get_date()
@@ -611,16 +516,13 @@ def seleccionar_fecha(calendario):
         for event in calendario.get_calevents(fecha_obj):
             calendario.calevent_remove(event)
 
-
 def mostrar_fechas(listbox):
-    listbox.delete(0, tk.END)  # Limpiar el ListBox antes de agregar las fechas
+    listbox.delete(0, tk.END)
     for fecha in fechas_seleccionadas:
         listbox.insert(tk.END, fecha)
-    print(f"Fechas seleccionadas: {fechas_seleccionadas}")
-
 
 def main():
-    global original_jobs, selected_jobs_global
+    global original_jobs, selected_jobs_global,dias_jobs_frame,seleccion_var
 
     try:
         root = tk.Tk()
@@ -629,7 +531,6 @@ def main():
         root.iconbitmap(icon_path)
         root.geometry("1000x700")
         root.resizable(False, False)
-        global dias_jobs_frame
         # Cargar la imagen de fondo
         bg_image = Image.open(os.path.join("Sources", "imagen", "logo_2.png"))
         bg_image = bg_image.resize((1000, 700), Image.LANCZOS)
@@ -651,7 +552,6 @@ def main():
 
         fechas_seleccionadas = []
 
-        global seleccion_var
         seleccion_var = tk.StringVar(value="dias_habiles")
 
         actualizar_interfaz()  # Llamar a la función de actualización
