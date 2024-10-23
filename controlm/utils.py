@@ -104,3 +104,34 @@ def oofstr(s: str | None) -> str:
     """
 
     return '' if s is None else str(s)
+
+
+class Secuencia:
+
+    def __init__(self):
+        self.current = 0
+        self.letter = 0
+        self.number = 1
+
+    def obtener_nmnemoc(self):
+        nmne = self._generar_mnemoc()
+        if nmne == 'Z99':
+            return 'noo'
+        return nmne
+
+    def _generar_mnemoc(self):
+        # Generate numbers from 000 to 999
+        if self.current < 1000:
+            ret_str = f"{self.current:03}"
+            self.current += 1
+            return ret_str
+        else:
+            # Generate letters A to Z followed by 01 to 99
+            ret_str = f"{chr(65 + self.letter)}{self.number:02}"
+            self.number += 1
+
+            if self.number > 99:
+                self.number = 1
+                self.letter += 1
+
+            return ret_str

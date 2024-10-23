@@ -985,7 +985,8 @@ class MallaMaxi:
         self.cadena_primordial = None
         self._trabajos_seleccionados = cadena_jobnames
         self._malla_origen = malla_origen
-        self._job_suffix_count = int(random.randint(1, 100))
+
+        self.job_suffix = utils.Secuencia()
 
     def ordenar(self):
         """
@@ -1035,15 +1036,8 @@ class MallaMaxi:
         self.cadena_primordial = [e[0] for lista in cadena_final_tmp for e in lista]
         self.cadena_primordial = list(map(self._malla_origen.obtener_job, self.cadena_primordial))
 
-    @property
-    def job_suffix(self) -> str:
-        """Retorna la secuencia de 3 dígitos que siguen a un jobname. Esto se realiza en base al _job_suffix_count, que
-        se deben incrementar cada vez que se utilice"""
-        return f"9{self._job_suffix_count:03}"
-
     def _ambientar_name(self, job: ControlmJob):
-        job.name = job.name[:-4] + self.job_suffix
-        self._job_suffix_count += 1
+        job.name = job.name[:-4] + '9' + self.job_suffix.obtener_nmnemoc()
 
     @staticmethod
     def _ambientar_marcas(cadena: list[ControlmJob]):
@@ -1155,9 +1149,6 @@ class MallaMaxi:
             ]
             job.atributos['CREATED_BY'] = legajo
 
-
-            # TODO: CREATED_BY DEBERIA DEJAR EL LEGAJO DEL USUARIO QUE CREA LA MALLA
-
     def exportar(self, folder_name: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
         import xml.etree.ElementTree as ET
@@ -1204,12 +1195,12 @@ class MallaMaxi:
                     ET.SubElement(condition_element, action.id, action.attrs)
 
         tree = ET.ElementTree(root)
-        xml_buffer = io.BytesIO()
+        # xml_buffer = io.BytesIO()
         ET.indent(tree, space='\t', level=0)
-        tree.write(xml_buffer, encoding='utf-8', xml_declaration=True)
+        # tree.write(xml_buffer, encoding='utf-8', xml_declaration=True)  TODO TODO TODO
+        tree.write(folder_name, encoding='utf-8', xml_declaration=True)
 
-        return xml_buffer
-
+        # return tree
 
 
 if __name__ == '__main__':

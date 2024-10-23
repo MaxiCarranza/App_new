@@ -181,7 +181,6 @@ def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manua
     return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
 
 
-
 def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,
                     fechas_manual=None):
     """
@@ -196,7 +195,6 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     """
     global new_filename, xml_buffer, new_folder_name
 
-    # TODO: Reveer si se puede armar la malla de cero env ez de modificar la existente
     nro_malla = str(random.randint(10, 99))
     new_folder_name = f"CR-AR{malla.uuaa}TMP-T{nro_malla}"
 
@@ -209,10 +207,11 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     m_max = MallaMaxi(jobs_to_duplicate, malla)
     m_max.ordenar()
     m_max.replicar_y_enlazar(fechas_a_iterar)
-    m_max.ambientar(mail_personal,new_folder_name,caso_de_uso,legajo)
-    xml_buffer = m_max.exportar(new_folder_name)
+    m_max.ambientar(mail_personal, new_folder_name, caso_de_uso, legajo)
+    xml_buffer = m_max.exportar(new_folder_name)  # TODO: Ver lo del ByteIO
 
     return new_folder_name
+
 
 def select_attached_file():
     global attached_file_path, jobs, malla
@@ -224,10 +223,6 @@ def select_attached_file():
     if attached_file_path:
 
         malla = ControlmFolder(attached_file_path)  # TODO: Envolver en try para que salga mensaje de error (en tk) si no se puede crear el objeto ControlmFolder
-        # tree = ET.parse(attached_file_path)
-        # root = tree.getroot()
-
-        # jobs = root.findall('.//JOB')
 
         # Limpia las listas si ya estaban cargada previamentes
         job_listbox.delete(0, tk.END)
@@ -241,6 +236,7 @@ def select_attached_file():
         messagebox.showinfo("Éxito", "Archivo adjunto cargado correctamente.")
 
 def save_job():
+
     if not new_folder_name or not xml_buffer:
         messagebox.showwarning("Advertencia", "No hay malla modificada para descargar o el archivo no existe.")
         return
@@ -271,7 +267,7 @@ def confirmar_seleccion():
     if selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() != "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), start_date_entry.get_date(),
                                              end_date_entry.get_date(), selected_jobs, caso_uso_var.get(),
-                                             seleccion_var.get(),legajo_var.get(), None)
+                                             seleccion_var.get(), legajo_var.get(), None)
         messagebox.showinfo("Éxito", "La malla ha sido modificada y guardada temporalmente.")
 
     elif selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() == "carga_manual":
