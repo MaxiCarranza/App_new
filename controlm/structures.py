@@ -1154,7 +1154,6 @@ class MallaMaxi:
 
         root = ET.Element("DEFTABLE")
         root.attrib['xmlns:xsi'] = "http://www.w3.org/2001/XMLSchema-instance"
-        # root.attrib['xsi:noNamespaceSchemaLocation'] = "Folder.xsd" TODO: SACAR
 
         folder = ET.SubElement(root, "FOLDER")
         folder.attrib['DATACENTER'] = "CTM_CTRLMCCR"

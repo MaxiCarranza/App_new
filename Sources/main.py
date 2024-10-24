@@ -51,7 +51,7 @@ import tkinter as tk
 from pandas.tseries.offsets import BDay
 from collections import defaultdict
 from controlm.structures import ControlmDigrafo, ControlmFolder
-from tkinter import ttk, messagebox, filedialog, simpledialog, Listbox, Scrollbar
+from tkinter import ttk, messagebox, filedialog, simpledialog, Listbox, Scrollbar,Checkbutton, BooleanVar
 from PIL import Image, ImageTk
 from tkcalendar import DateEntry, Calendar
 from datetime import datetime, timedelta
@@ -293,8 +293,23 @@ def validate_legajo(legajo):
     else:
         return False
 
+def seleccionar_todos():
+    clicked_job = job_listbox.get(0,tk.END)
+    if var_seleccion.get():
+        # Selecciona todos los elementos en la lista
+        job_listbox.select_set(0, tk.END)
+        for i in clicked_job:
+            selected_jobs_global.add(i)
+    else:
+        # Deselecciona todos los elementos en la lista
+        job_listbox.select_clear(0, tk.END)
+        for i in clicked_job:
+            selected_jobs_global.remove(i)
+
+    update_selected_jobs_listbox()
+
 def interfaz_seleccion_job():
-    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox,legajo_var
+    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox,legajo_var,var_seleccion
 
     tk.Label(dias_jobs_frame, text="Mail:", font=("Arial", 12), bg="white").grid(row=3, column=2, sticky="e", pady=5,
                                                                                  padx=5)
@@ -316,6 +331,12 @@ def interfaz_seleccion_job():
     attachment_button = tk.Button(dias_jobs_frame, text="Adjuntar malla", command=select_attached_file,
                                   font=("Arial", 12))
     attachment_button.grid(row=5, column=2, columnspan=2, pady=10)
+
+    var_seleccion = BooleanVar()
+
+    check_button = Checkbutton(dias_jobs_frame, text="Seleccionar Todos", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 10))
+    check_button.grid(row=5, column=2, columnspan=1, pady=10)
+
 
     entry_buscar = tk.Entry(dias_jobs_frame, font=("Arial", 12), fg='grey')
     entry_buscar.grid(row=6, column=2, columnspan=2, pady=5, padx=2, sticky="ew")

@@ -114,3 +114,36 @@ ERROR:root:Traceback (most recent call last):
     ^^^^^^^^^^^^^^^^
 NameError: name 'start_date_entry' is not defined
 
+ERROR:root:Se produjo un error: name 'BooleanVar' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 486, in main
+    actualizar_interfaz()
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 434, in actualizar_interfaz
+    interfaz_seleccion_job()
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 328, in interfaz_seleccion_job
+    var_seleccion = BooleanVar()
+                    ^^^^^^^^^^
+NameError: name 'BooleanVar' is not defined
+
+ERROR:root:Se produjo un error: name 'BooleanVar' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 487, in main
+    actualizar_interfaz()
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 435, in actualizar_interfaz
+    interfaz_seleccion_job()
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 328, in interfaz_seleccion_job
+    var_seleccion = BooleanVar()
+                    ^^^^^^^^^^
+NameError: name 'BooleanVar' is not defined
+
+ERROR:root:Se produjo un error: name 'root' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 487, in main
+    actualizar_interfaz()
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 435, in actualizar_interfaz
+    interfaz_seleccion_job()
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 330, in interfaz_seleccion_job
+    check_button = Checkbutton(root, text="Seleccionar Todos", variable=var_seleccion, command=seleccionar_todos)
+                               ^^^^
+NameError: name 'root' is not defined
+
