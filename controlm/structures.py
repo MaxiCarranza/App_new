@@ -7,7 +7,6 @@ from __future__ import annotations
 import itertools
 import random
 import re
-import io
 
 from typing import Literal
 from copy import deepcopy
@@ -1149,7 +1148,7 @@ class MallaMaxi:
             ]
             job.atributos['CREATED_BY'] = legajo
 
-    def exportar(self, folder_name: str):
+    def exportar(self, folder_name: str,save_path: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
         import xml.etree.ElementTree as ET
 
@@ -1195,12 +1194,10 @@ class MallaMaxi:
                     ET.SubElement(condition_element, action.id, action.attrs)
 
         tree = ET.ElementTree(root)
-        # xml_buffer = io.BytesIO()
-        ET.indent(tree, space='\t', level=0)
-        # tree.write(xml_buffer, encoding='utf-8', xml_declaration=True)  TODO TODO TODO
-        tree.write(folder_name, encoding='utf-8', xml_declaration=True)
 
-        # return tree
+        ET.indent(tree, space='\t', level=0)
+        with open(save_path, 'wb') as f:
+            tree.write(save_path, encoding='utf-8', xml_declaration=True)
 
 
 if __name__ == '__main__':

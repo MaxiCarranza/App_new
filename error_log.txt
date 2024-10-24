@@ -107,3 +107,10 @@ ERROR:root:Traceback (most recent call last):
     self.tk.call(
 _tkinter.TclError: bad 2nd pad value "-1": must be positive screen distance
 
+ERROR:root:Se produjo un error: name 'start_date_entry' is not defined
+ERROR:root:Traceback (most recent call last):
+  File "D:\Documents\BBVA\App_new\Sources\main.py", line 548, in main
+    start_date_entry.config(state="readonly")
+    ^^^^^^^^^^^^^^^^
+NameError: name 'start_date_entry' is not defined
+

@@ -69,17 +69,6 @@ selected_jobs_global = set()
 REGEX_MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
 REGEX_LEGAJO = r'^[A-Za-z]\d+$'
 
-
-class JobData:
-    def __init__(self, name, marcasout=None, marcasin=None):
-        self.name = name
-        self.marcasout = marcasout if marcasout is not None else []
-        self.marcasin = marcasin if marcasin is not None else []
-
-    def __repr__(self):
-        return f"JobData(name={self.name}, marcasout={self.marcasout}, marcasin={self.marcasin})"
-
-
 def ruta_absoluta(rel_path):
     if hasattr(sys, 'frozen'):
         base_path = os.path.dirname(sys.executable)
@@ -87,28 +76,7 @@ def ruta_absoluta(rel_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, rel_path)
 
-
 ruta_modelo = ruta_absoluta('model.h5')
-
-
-class JobData:
-    def __init__(self, name, marcasout=None, marcasin=None):
-        self.name = name
-        self.marcasout = marcasout if marcasout is not None else []
-        self.marcasin = marcasin if marcasin is not None else []
-
-    def __repr__(self):
-        return f"JobData(name={self.name}, marcasout={self.marcasout}, marcasin={self.marcasin})"
-
-    def get_prerequisitos(self):
-        # Devuelve una lista con los nombres de los prerequisitos (marcasin)
-        return [marca.name for marca in self.marcasin]
-
-
-class MarcaOut:
-    def __init__(self, name, signo):
-        self.name = name
-        self.signo = signo
 
 def es_fecha_valida(fecha):
     try:
@@ -123,47 +91,6 @@ def es_fecha_valida(fecha):
         print(f"Error al consultar la API de feriados: {e}")
         non_chamba_days = set()
     return fecha.weekday() < 5 and fecha not in non_chamba_days
-
-
-def ordenar_jobs_creados_por_dependencias(dependencias, jobs_creados):
-    # Agrupar jobs creados por ODATE
-    jobs_por_odate = defaultdict(list)
-    for job_nuevo, job_original, odate in jobs_creados:
-        jobs_por_odate[odate].append((job_nuevo, job_original, odate))
-
-    jobs_creados_ordenados = []
-    usados = set()
-
-    # Recorrer cada ODATE y ordenar por dependencias
-    for odate, jobs_con_odate in sorted(jobs_por_odate.items()):
-        # Ordenar por dependencias dentro del mismo ODATE
-        for dep in dependencias:
-            job_deja_marca, job_recibe_marca = dep
-
-            # Buscar el job correspondiente en jobs_con_odate
-            for job_nuevo, job_original, odate_actual in jobs_con_odate:
-                if job_original == job_recibe_marca and job_nuevo not in usados and odate_actual == odate:
-                    jobs_creados_ordenados.append((job_nuevo, job_original, odate_actual))
-                    usados.add(job_nuevo)
-
-                    # Buscar el job que deja la marca (predecesor en la dependencia)
-                    for job_nuevo_predecesor, job_original_predecesor, odate_predecesor in jobs_con_odate:
-                        if job_original_predecesor == job_deja_marca and job_nuevo_predecesor not in usados:
-                            jobs_creados_ordenados.append(
-                                (job_nuevo_predecesor, job_original_predecesor, odate_predecesor))
-                            usados.add(job_nuevo_predecesor)
-                            break
-
-    # Agregar los jobs que no fueron procesados en las dependencias
-    for job_nuevo, job_original, odate in jobs_creados:
-        if job_nuevo not in usados:
-            jobs_creados_ordenados.append((job_nuevo, job_original, odate))
-            usados.add(job_nuevo)
-
-    return jobs_creados_ordenados
-
-
-##################FUNCIONES NUEVAS ###############################
 
 def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manual=None):
     """
@@ -180,9 +107,7 @@ def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manua
     # Por defecto, retornar todas las fechas en el rango
     return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
 
-
-def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,
-                    fechas_manual=None):
+def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,fechas_manual=None):
     """
     Función para modificar la malla.
 
@@ -193,7 +118,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     :param fechas_pross: toma el fechas de la opcion
     :param fechas: Lista de fechas seleccionadas. Si no se pasan, se usará la variable global fechas_seleccionadas.
     """
-    global new_filename, xml_buffer, new_folder_name
+    global new_filename, xml_buffer, new_folder_name,m_max
 
     nro_malla = str(random.randint(10, 99))
     new_folder_name = f"CR-AR{malla.uuaa}TMP-T{nro_malla}"
@@ -208,21 +133,17 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     m_max.ordenar()
     m_max.replicar_y_enlazar(fechas_a_iterar)
     m_max.ambientar(mail_personal, new_folder_name, caso_de_uso, legajo)
-    xml_buffer = m_max.exportar(new_folder_name)  # TODO: Ver lo del ByteIO
 
     return new_folder_name
-
 
 def select_attached_file():
     global attached_file_path, jobs, malla
     attached_file_path = filedialog.askopenfilename(title="Selecciona una malla XML",
                                                     filetypes=[("XML files", "*.xml")])
 
-    # TODO: Es necesario este IF ? Siempre se selecciona un archivo
-    #   Ademas validar si el archivo es xml, porque por el momento funciona con cualquier extensión
-    if attached_file_path:
+    try:
 
-        malla = ControlmFolder(attached_file_path)  # TODO: Envolver en try para que salga mensaje de error (en tk) si no se puede crear el objeto ControlmFolder
+        malla = ControlmFolder(attached_file_path)
 
         # Limpia las listas si ya estaban cargada previamentes
         job_listbox.delete(0, tk.END)
@@ -233,21 +154,20 @@ def select_attached_file():
         for job_name in job_names_from_xml:
             job_listbox.insert(tk.END, job_name)
 
+    except:
         messagebox.showinfo("Éxito", "Archivo adjunto cargado correctamente.")
 
 def save_job():
 
-    if not new_folder_name or not xml_buffer:
+    if not new_folder_name:
         messagebox.showwarning("Advertencia", "No hay malla modificada para descargar o el archivo no existe.")
         return
 
     save_path = filedialog.asksaveasfilename(defaultextension=".xml", filetypes=[("XML files", "*.xml")],
                                              initialfile=os.path.basename(modified_file_path))
 
-    if save_path:
-        with open(save_path, 'wb') as f:
-            f.write(xml_buffer.getvalue())
-        messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
+    m_max.exportar(new_folder_name,save_path)
+    messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
 
 def confirmar_seleccion():
 
@@ -550,8 +470,10 @@ def main():
 
         seleccion_var = tk.StringVar(value="dias_habiles")
 
-        actualizar_interfaz()  # Llamar a la función de actualización
-
+        actualizar_interfaz()
+        start_date_entry.config(state="readonly")
+        end_date_entry.config(state="readonly")
+        calendario_button.config(state='disabled')
         seleccion_var.trace("w", lambda *args: actualizar_interfaz())
 
         root.mainloop()
