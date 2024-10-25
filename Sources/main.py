@@ -154,8 +154,10 @@ def select_attached_file():
         for job_name in job_names_from_xml:
             job_listbox.insert(tk.END, job_name)
 
-    except:
         messagebox.showinfo("Éxito", "Archivo adjunto cargado correctamente.")
+
+    except:
+        messagebox.showinfo("Fallo", "Archivo adjunto no se cargo.")
 
 def save_job():
 
