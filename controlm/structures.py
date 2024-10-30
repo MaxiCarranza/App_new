@@ -98,8 +98,11 @@ class ControlmFolder:
 
         self._match = re.search(Regex.MALLA, self.name)
         if self._match is None:
-            raise ValueError(
-                f"No se puede obtener uuaa o periodicidad a partir del nombre malla [{self.name}] en el archivo [{xml_input}]. Para realizar el analisis es obligatorio que cumpla con el estandar definido por el regex [{Regex.MALLA}]")
+            self._match = re.search(Regex.MALLA_TMP, self.name)
+            if self._match is None:
+                raise ValueError(f"No se puede obtener uuaa o periodicidad a partir del nombre malla [{self.name}] en "
+                                 f"el archivo [{xml_input}]. Para realizar el analisis es obligatorio que cumpla con "
+                                 f"el estandar definido por el regex [{Regex.MALLA}]")
 
         self._jobs: dict[str, ControlmJob] = dict()
         for job_element in self._base.findall(TagXml.JOB):
@@ -979,13 +982,14 @@ class MallaMaxi:
     'transformar' y la malla de referencia de la cual obtiene informacion que usa durante tod0 el proceso
     """
 
-    def __init__(self, cadena_jobnames: list[ControlmJob], malla_origen: ControlmFolder):
+    def __init__(self, cadena_jobnames: list[ControlmJob], malla_origen: ControlmFolder, temporal: bool = False):
         """
         Constructor
 
         :param cadena_jobnames: Lista de jobs que se deben transformar a temporales
         :param malla_origen: Malla que contiene los jobs
         """
+        self._folder_name_exp = None
         self.cadena_completa_temporal = None
         self.cadena_primordial = None
         self._trabajos_seleccionados = cadena_jobnames
@@ -1004,7 +1008,6 @@ class MallaMaxi:
                               self._trabajos_seleccionados]
         cadenas_relevantes = list(map(sorted, cadenas_relevantes))
 
-        # La puta que lo pario
         cadenas_relevantes = [list(item) for item in set(tuple(sublist) for sublist in cadenas_relevantes)]
 
         # cadena_final_tmp es una Lista de tuplas que tiene la siguiente estructura:
@@ -1026,8 +1029,10 @@ class MallaMaxi:
                     cadena_descendiente = self._malla_origen.digrafo.recorrer_cadena(jobname)
                     for jobname_des in cadena_descendiente:
                         cadena_con_orden.append(
-                            (jobname_des,
-                             len(self._malla_origen.digrafo.find_shortest_path(start=jobname, end=jobname_des)))
+                            (
+                                jobname_des,
+                                len(self._malla_origen.digrafo.find_shortest_path(start=jobname, end=jobname_des))
+                            )
                         )
                     break
 
@@ -1134,8 +1139,10 @@ class MallaMaxi:
 
     def ambientar(self, mail: str, folder_name: str, caso_d_uso: str, legajo: str):
         """
-        Ambienta los jobs a malla
+        Ambienta los jobs a malla.
         """
+
+        self._folder_name_exp = folder_name
 
         if len(self.cadena_completa_temporal) >= Limits.MAX_JOBS_TMP:
             configurar_con_force = True
@@ -1147,7 +1154,7 @@ class MallaMaxi:
 
             job: ControlmJob
 
-            job.atributos['DESCRIPTION'] += f'\nCreado automáticamente por generador de mallas temporales {caso_d_uso}'
+            job.atributos['DESCRIPTION'] += f'Creado automáticamente por generador de mallas temporales {caso_d_uso}'
 
             for name, value in job.variables.items():
                 if '%%$ODATE' in value:
@@ -1157,6 +1164,8 @@ class MallaMaxi:
                 elif '.dev' in value:
                     job.variables[name] = value.replace('.dev', '.pro')
 
+            msg = f'Finalizo NOTOK %%JOBNAME {caso_d_uso}. Malla creada automaticamente por el generador de mallas temporales'
+            msg_len = str(len(msg)).zfill(4)
             job.onconditions['NOTOK'] = [
                 ControlmAction(
                     action_id='DOMAIL',
@@ -1165,12 +1174,14 @@ class MallaMaxi:
                         'DEST': 'datio-procesos-live.group@bbva.com',
                         'CC_DEST': mail,
                         'SUBJECT': f'Cancelo %%JOBNAME {caso_d_uso} - Temporal',
-                        'MESSAGE': f'Finalizó NOTOK %%JOBNAME {caso_d_uso}.\nMalla creada automáticamente por el generador de mallas temporales',
+                        'MESSAGE': msg_len + msg,
                         'ATTACH_SYSOUT': 'Y'
                     }
                 )
             ]
 
+            msg = f'Finalizo OK %%JOBNAME {caso_d_uso}. Malla creada automaticamente por el generador de mallas temporales'
+            msg_len = str(len(msg)).zfill(4)
             job.onconditions['OK'] = [
                 ControlmAction(
                     action_id='DOMAIL',
@@ -1179,7 +1190,7 @@ class MallaMaxi:
                         'DEST': 'datio-procesos-live.group@bbva.com',
                         'CC_DEST': mail,
                         'SUBJECT': f'OK %%JOBNAME {caso_d_uso} - Temporal',
-                        'MESSAGE': f'Finalizó OK %%JOBNAME {caso_d_uso}.\nMalla creada automáticamente por el generador de mallas temporales',
+                        'MESSAGE': msg_len + msg,
                         'ATTACH_SYSOUT': 'Y'
                     }
                 )
@@ -1229,7 +1240,7 @@ class MallaMaxi:
             ]
             job.atributos['CREATED_BY'] = legajo
 
-    def exportar(self, folder_name: str, save_path: str):
+    def exportar(self, save_path: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
 
         import xml.etree.ElementTree as ET  # TODO: Qué hace esto acá ?
@@ -1241,7 +1252,7 @@ class MallaMaxi:
         folder.attrib['DATACENTER'] = "CTM_CTRLMCCR"
         folder.attrib['VERSION'] = "919"
         folder.attrib['PLATFORM'] = "UNIX"
-        folder.attrib['FOLDER_NAME'] = folder_name
+        folder.attrib['FOLDER_NAME'] = self._folder_name_exp
         folder.attrib['MODIFIED'] = "False"
         folder.attrib['LAST_UPLOAD'] = "20240925182750UTC"
         folder.attrib['FOLDER_ORDER_METHOD'] = "PRUEBAS"
@@ -1253,7 +1264,7 @@ class MallaMaxi:
 
             job_element = ET.SubElement(folder, 'JOB', job.atributos)
             job_element.attrib['JOBNAME'] = job.name
-            job_element.attrib['PARENT_FOLDER'] = folder_name
+            job_element.attrib['PARENT_FOLDER'] = self._folder_name_exp
 
             for var_name, var_value in job.variables.items():
                 ET.SubElement(job_element, 'VARIABLE', {'NAME': var_name, 'VALUE': var_value})
@@ -1270,14 +1281,14 @@ class MallaMaxi:
                 ET.SubElement(job_element, 'QUANTITATIVE', {'NAME': rrcc.name, 'QUANT': '1', 'ONFAIL': 'R', 'ONOK': 'R'})
 
             for condition_id, actions in job.onconditions.items():
-                condition_element = ET.SubElement(job_element, 'ON', {'CODE': condition_id})
+                condition_element = ET.SubElement(job_element, 'ON', {'STMT': "*", 'CODE': condition_id})
                 for action in actions:
                     ET.SubElement(condition_element, action.id, action.attrs)
 
         tree = ET.ElementTree(root)
 
         ET.indent(tree, space='\t', level=0)
-        tree.write(os.path.join(save_path, folder_name)+'.xml', encoding='utf-8', xml_declaration=True)
+        tree.write(os.path.join(save_path, self._folder_name_exp)+'.xml', encoding='utf-8', xml_declaration=True)
 
 
 if __name__ == '__main__':
@@ -1286,10 +1297,34 @@ if __name__ == '__main__':
     import datetime
     import os
 
-    malla = ControlmFolder('C:\\Users\\Gaston\\PycharmProjects\\App_new\\30-09-2024 03-25-30 p.m. Folder CR-ARMOLDIA-T02 (1).xml')
-    jobs = [job for job in malla.jobs() if job.name in ['AMOLCP0010', 'AMOLPP0004', 'AMOLSP0105', 'AMOLCP0012', 'AMOLVP0186']]
+    malla_test = ControlmFolder('C:\\Users\\Gaston\\PycharmProjects\\App_new\\CR-ARMOLTMP-T38.xml')
+    # jobs = [job for job in malla.jobs() if job.name in ['AMOLCP0010', 'AMOLPP0004', 'AMOLSP0105', 'AMOLCP0012', 'AMOLVP0186']]
+    jobs = [job for job in malla_test.jobs() if job.name in ["AMOLCP9000",
+                                                             "AMOLCP9001",
+                                                             "AMOLCP9002",
+                                                             "AMOLCP9003",
+                                                             "AMOLCP9004",
+                                                             "AMOLCP9005",
+                                                             "AMOLCP9006",
+                                                             "AMOLCP9007",
+                                                             "AMOLCP9008",
+                                                             "AMOLCP9009",
+                                                             "AMOLCP9010",
+                                                             "AMOLCP9011",
+                                                             "AMOLCP9012",
+                                                             "AMOLCP9013",
+                                                             "AMOLCP9014",
+                                                             "AMOLCP9015",
+                                                             "AMOLCP9016",
+                                                             "AMOLCP9017",
+                                                             "AMOLCP9018",
+                                                             "AMOLCP9019",
+                                                             "AMOLCP9020",
+                                                             "AMOLCP9021"
+                                                             ]
+            ]
 
-    m_max = MallaMaxi(jobs, malla)
+    m_max = MallaMaxi(jobs, malla_test)
     m_max.ordenar()
 
     fechas_a_iterar = [
@@ -1302,6 +1337,6 @@ if __name__ == '__main__':
     ]
 
     m_max.replicar_y_enlazar(fechas_a_iterar)
-    m_max.ambientar('jemonjelos@bbva.com', 'OOOOCA', 'ALERTA_Du_PortEÑO', 'O00000')
+    m_max.ambientar('jemonjelos@bbva.com', 'OOOOCA_temporal', 'ALERTADuPortENIOO', 'O00000')
 
-    m_max.exportar('OOOOCA', os.getcwd())
+    m_max.exportar(os.getcwd())
