@@ -1,3 +1,5 @@
+# TODO: USAR ENUM
+
 
 class Carpetas:
     """
@@ -30,6 +32,10 @@ class Regex:
     JOBNAME = r'^(?P<pais>[A-Z])(?P<uuaa>K?[A-Z0-9]{3,4})(?P<tipo>[NEDRTCWAVMBPGSD])(?P<entorno>[PBDTCM])(?P<periodicidad>\d)[0-9A-Z]{3}$'
     MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
     TABLA = r'^t_(?P<uuaa>k?[a-z0-9]{3,4})_.+$'
+
+
+class Limits:
+    MAX_JOBS_TMP = 30
 
 
 ATRIBUTOS_NO_RELEVANTES = [

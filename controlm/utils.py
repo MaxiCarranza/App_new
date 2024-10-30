@@ -107,6 +107,9 @@ def oofstr(s: str | None) -> str:
 
 
 class Secuencia:
+    """
+    Clase generadora de identificador único de jobname, genera caracteres del 000 al 999 y luego de A00 a Z99
+    """
 
     def __init__(self):
         self.current = 0

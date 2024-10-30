@@ -13,12 +13,11 @@ from copy import deepcopy
 from xml.etree.ElementTree import Element
 from xml.etree.ElementTree import ParseError
 from xml.etree.ElementTree import parse
-from xml.etree.ElementTree import tostringlist
-from xml.etree.ElementTree import fromstringlist
 
 import controlm.utils as utils
 from controlm.constantes import Regex
 from controlm.constantes import TagXml
+from controlm.constantes import Limits
 
 
 class ControlmContainer:
@@ -188,7 +187,6 @@ class ControlmJob:
         :param filename: Nombre del archivo xml del cual se lee, se utiliza para informar en caso de error
         """
 
-        self.name: str = xml_element.get(TagXml.JOB_NAME)
         self.atributos: dict = {i[0]: i[1] for i in xml_element.items()}
 
         self._match_jobname = re.search(Regex.JOBNAME, self.name)
@@ -374,6 +372,14 @@ class ControlmJob:
 
     def __str__(self):
         return self.name
+
+    @property
+    def name(self):
+        return self.atributos[TagXml.JOB_NAME]
+
+    @name.setter
+    def name(self, value):
+        self.atributos[TagXml.JOB_NAME] = value
 
     @property
     def tipo(self) -> str:
@@ -996,8 +1002,10 @@ class MallaMaxi:
         # TODO: Contemplar el caso en el cual una cadena tiene 2 o mas raices (hay que generar el arbol)
         cadenas_relevantes = [self._malla_origen.digrafo.recorrer_cadena_completa(job.name) for job in
                               self._trabajos_seleccionados]
-        cadenas_relevantes = map(sorted, cadenas_relevantes)
-        cadenas_relevantes = list(k for k, _ in itertools.groupby(cadenas_relevantes))
+        cadenas_relevantes = list(map(sorted, cadenas_relevantes))
+
+        # La puta que lo pario
+        cadenas_relevantes = [list(item) for item in set(tuple(sublist) for sublist in cadenas_relevantes)]
 
         # cadena_final_tmp es una Lista de tuplas que tiene la siguiente estructura:
         #   (jobname, orden_en_cadena)
@@ -1036,10 +1044,16 @@ class MallaMaxi:
         self.cadena_primordial = list(map(self._malla_origen.obtener_job, self.cadena_primordial))
 
     def _ambientar_name(self, job: ControlmJob):
-        job.name = job.name[:-4] + '9' + self.job_suffix.obtener_nmnemoc()
+        new_name = job.name[:-4] + '9' + self.job_suffix.obtener_nmnemoc()
+        job.name = new_name
 
     @staticmethod
     def _ambientar_marcas(cadena: list[ControlmJob]):
+
+        if len(cadena) > Limits.MAX_JOBS_TMP:
+            valor_mediante_accion = True
+        else:
+            valor_mediante_accion = False
 
         for job in cadena:
             job.marcasin = None
@@ -1053,7 +1067,8 @@ class MallaMaxi:
                     ControlmMarcaIn(
                         marca_nombre=f'{cadena[index-1].name}-TO-{job.name}',
                         odate_esperado='ODAT'
-                    )]
+                    )
+                ]
 
             if job is cadena[-1]:
                 job.marcasout = None
@@ -1063,8 +1078,9 @@ class MallaMaxi:
                         marca_nombre=f'{job.name}-TO-{cadena[index+1].name}',
                         odate_esperado='ODAT',
                         signo='+',
-                        mediante_accion=False
-                    )]
+                        mediante_accion=valor_mediante_accion
+                    )
+                ]
 
             if job.marcasin is not None:
                 try:
@@ -1076,13 +1092,14 @@ class MallaMaxi:
                             mediante_accion=False
                         ))
                 except AttributeError:
-                    job.marcasout = [(
+                    job.marcasout = [
                         ControlmMarcaOut(
                             marca_nombre=f'{cadena[index-1]}-TO-{job.name}',
                             odate_esperado='ODAT',
                             signo='-',
                             mediante_accion=False
-                        ))]
+                        )
+                    ]
 
     def replicar_y_enlazar(self, odates_seleccionados: list):
         """
@@ -1099,8 +1116,7 @@ class MallaMaxi:
 
         # Replicamos la cadena temporal, tantas veces como tengamos odates
         cadena_temporal = []
-        cadena_temporal.extend(self.cadena_primordial)
-        for _ in range(len(odates_seleccionados) - 1):
+        for _ in range(len(odates_seleccionados)):
             cadena_temporal.extend(deepcopy(self.cadena_primordial))
 
         if len(cadena_temporal) != len(odates_list_temp):
@@ -1120,9 +1136,19 @@ class MallaMaxi:
         """
         Ambienta los jobs a malla
         """
+
+        if len(self.cadena_completa_temporal) >= Limits.MAX_JOBS_TMP:
+            configurar_con_force = True
+        else:
+            configurar_con_force = False
+
         # Cambio el valor %%ODATE por fecha seleccionada, en cada job de la cadena
         for job in self.cadena_completa_temporal:
+
             job: ControlmJob
+
+            job.atributos['DESCRIPTION'] += f'\nCreado automáticamente por generador de mallas temporales {caso_d_uso}'
+
             for name, value in job.variables.items():
                 if '%%$ODATE' in value:
                     job.variables[name] = value.replace('%%$ODATE', job.odate)
@@ -1131,11 +1157,66 @@ class MallaMaxi:
                 elif '.dev' in value:
                     job.variables[name] = value.replace('.dev', '.pro')
 
-            for condition_name, actions in job.onconditions.items():
-                for action in actions:
-                    if action.id == 'DOMAIL':
-                        action.attrs['CC_DEST'] = mail
-                        action.attrs['SUBJECT'] = action.attrs['SUBJECT'].replace('Job', caso_d_uso + ' - Job')
+            job.onconditions['NOTOK'] = [
+                ControlmAction(
+                    action_id='DOMAIL',
+                    attrs={
+                        'URGENCY': 'R',
+                        'DEST': 'datio-procesos-live.group@bbva.com',
+                        'CC_DEST': mail,
+                        'SUBJECT': f'Cancelo %%JOBNAME {caso_d_uso} - Temporal',
+                        'MESSAGE': f'Finalizó NOTOK %%JOBNAME {caso_d_uso}.\nMalla creada automáticamente por el generador de mallas temporales',
+                        'ATTACH_SYSOUT': 'Y'
+                    }
+                )
+            ]
+
+            job.onconditions['OK'] = [
+                ControlmAction(
+                    action_id='DOMAIL',
+                    attrs={
+                        'URGENCY': 'R',
+                        'DEST': 'datio-procesos-live.group@bbva.com',
+                        'CC_DEST': mail,
+                        'SUBJECT': f'OK %%JOBNAME {caso_d_uso} - Temporal',
+                        'MESSAGE': f'Finalizó OK %%JOBNAME {caso_d_uso}.\nMalla creada automáticamente por el generador de mallas temporales',
+                        'ATTACH_SYSOUT': 'Y'
+                    }
+                )
+            ]
+
+            if job.marcasout is None or not job.marcasout or job.marcasout[0].signo == '-':
+                continue
+
+            if configurar_con_force:
+                marca_out = job.marcasout.pop(0)
+
+                # Mini check por las dudas
+                if marca_out.signo != '+':
+                    raise Exception(f"Se removió un item que no es el correcto a la hora de ambientar la malla con force", marca_out)
+
+                job.onconditions['OK'].append(
+                    ControlmAction(
+                        action_id='DOCOND',
+                        attrs={
+                            'NAME': marca_out.name,
+                            'ODATE': 'ODAT',
+                            'SIGN':  marca_out.signo
+                        }
+                    )
+                )
+
+                job.onconditions['OK'].append(
+                    ControlmAction(
+                        action_id='DOFORCEJOB',
+                        attrs={
+                            'TABLE_NAME': folder_name,
+                            'NAME': marca_out.destino,
+                            'ODATE': 'ODAT',
+                            'REMOTE': 'N'
+                        }
+                    )
+                )
 
             job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
             job.atributos.pop('DAYSCAL', None)
@@ -1148,9 +1229,10 @@ class MallaMaxi:
             ]
             job.atributos['CREATED_BY'] = legajo
 
-    def exportar(self, folder_name: str,save_path: str):
+    def exportar(self, folder_name: str, save_path: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
-        import xml.etree.ElementTree as ET
+
+        import xml.etree.ElementTree as ET  # TODO: Qué hace esto acá ?
 
         root = ET.Element("DEFTABLE")
         root.attrib['xmlns:xsi'] = "http://www.w3.org/2001/XMLSchema-instance"
@@ -1195,15 +1277,14 @@ class MallaMaxi:
         tree = ET.ElementTree(root)
 
         ET.indent(tree, space='\t', level=0)
-        with open(save_path, 'wb') as f:
-            tree.write(save_path, encoding='utf-8', xml_declaration=True)
+        tree.write(os.path.join(save_path, folder_name)+'.xml', encoding='utf-8', xml_declaration=True)
 
 
 if __name__ == '__main__':
 
     # Script para testear
     import datetime
-    from pprint import pprint
+    import os
 
     malla = ControlmFolder('C:\\Users\\Gaston\\PycharmProjects\\App_new\\30-09-2024 03-25-30 p.m. Folder CR-ARMOLDIA-T02 (1).xml')
     jobs = [job for job in malla.jobs() if job.name in ['AMOLCP0010', 'AMOLPP0004', 'AMOLSP0105', 'AMOLCP0012', 'AMOLVP0186']]
@@ -1214,9 +1295,13 @@ if __name__ == '__main__':
     fechas_a_iterar = [
         datetime.datetime.now(),
         datetime.datetime(2024, 10, 14),
-        datetime.datetime(2024, 10, 11)
+        datetime.datetime(2024, 10, 15),
+        datetime.datetime(2024, 10, 16),
+        datetime.datetime(2024, 10, 17),
+        datetime.datetime(2024, 10, 20),
     ]
 
     m_max.replicar_y_enlazar(fechas_a_iterar)
-    # m_max.ambientar('gmongelos@bbva.com', 'OOOOCA', 'ALERTA_DE_B0LIT4')
-    m_max.exportar('OOOOCA')
+    m_max.ambientar('jemonjelos@bbva.com', 'OOOOCA', 'ALERTA_Du_PortEÑO', 'O00000')
+
+    m_max.exportar('OOOOCA', os.getcwd())
