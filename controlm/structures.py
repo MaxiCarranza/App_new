@@ -5,7 +5,7 @@ Modulo que contiene todas las clases correspondientes a elementos notables de co
 from __future__ import annotations
 
 import itertools
-import random
+import os
 import re
 
 from typing import Literal
@@ -1111,7 +1111,7 @@ class MallaMaxi:
         Replica una cadena primordial tantas veces como haya ODATES (seleccionados) desde los cuales se requieran
         ejecutar cada cadena. Luego une los jobs mediante marcas y los deja en una sola 'linea'
         """
-        odates = [odate.strftime("%Y%m%d") for odate in odates_seleccionados]
+        odates = [x.replace('-', '') for x in odates_seleccionados]
 
         # Generamos n odates como elementos haya en la cadena primordial. Esto es porque tenemos que asignarle un odate
         # a cada job
@@ -1288,7 +1288,7 @@ class MallaMaxi:
         tree = ET.ElementTree(root)
 
         ET.indent(tree, space='\t', level=0)
-        tree.write(os.path.join(save_path, self._folder_name_exp)+'.xml', encoding='utf-8', xml_declaration=True)
+        tree.write(os.path.join(save_path), encoding='utf-8', xml_declaration=True)
 
 
 if __name__ == '__main__':

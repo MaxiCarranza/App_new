@@ -69,6 +69,13 @@ selected_jobs_global = set()
 REGEX_MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
 REGEX_LEGAJO = r'^[A-Za-z]\d+$'
 
+try:
+    response = requests.get(api_url)
+    response.raise_for_status()
+    print("Conexión exitosa:", response.json())
+except requests.exceptions.RequestException as e:
+    print("Error en la conexión:", e)
+
 def ruta_absoluta(rel_path):
     if hasattr(sys, 'frozen'):
         base_path = os.path.dirname(sys.executable)
@@ -78,19 +85,20 @@ def ruta_absoluta(rel_path):
 
 ruta_modelo = ruta_absoluta('model.h5')
 
+
 def es_fecha_valida(fecha):
+    # Obtener los días no laborables (feriados)
+
     try:
         response = requests.get(api_url)
         response.raise_for_status()
         feriados_data = response.json()
-        non_chamba_days = set()
-        for feriado in feriados_data:
-            fecha_feriado = datetime.strptime(feriado['fecha'], '%Y-%m-%d').date()
-            non_chamba_days.add(fecha_feriado)
+        non_chamba_days = [feriado['fecha'] for feriado in feriados_data]
     except requests.exceptions.RequestException as e:
         print(f"Error al consultar la API de feriados: {e}")
-        non_chamba_days = set()
-    return fecha.weekday() < 5 and fecha not in non_chamba_days
+        non_chamba_days = list()
+
+    return [f.strftime('%Y-%m-%d') for f in fecha if f.weekday() < 5 and f.strftime('%Y-%m-%d') not in non_chamba_days]
 
 def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manual=None):
     """
@@ -102,7 +110,9 @@ def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manua
 
     # Si fechas_pross es "dias_habiles", generar solo días hábiles
     if fechas_pross == "dias_habiles":
-        return pd.date_range(start=current_date, end=end_date, freq=BDay()).to_pydatetime().tolist()
+        fechas_a_work = pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
+        fecha_habil = es_fecha_valida(fechas_a_work)
+        return fecha_habil
 
     # Por defecto, retornar todas las fechas en el rango
     return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
@@ -168,7 +178,7 @@ def save_job():
     save_path = filedialog.asksaveasfilename(defaultextension=".xml", filetypes=[("XML files", "*.xml")],
                                              initialfile=os.path.basename(modified_file_path))
 
-    m_max.exportar(new_folder_name,save_path)
+    m_max.exportar(save_path)
     messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
 
 def confirmar_seleccion():
@@ -208,11 +218,6 @@ def confirmar_seleccion():
 
     else:
         messagebox.showwarning("Advertencia", "Por favor, adjunte un archivo y al menos un job.")
-
-def get_next_valid_date(fecha):
-    while not es_fecha_valida(fecha):
-        fecha += timedelta(days=1)
-    return fecha
 
 def update_selected_jobs_listbox():
     global selected_jobs_global, selected_jobs_listbox
