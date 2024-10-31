@@ -982,7 +982,7 @@ class MallaMaxi:
     'transformar' y la malla de referencia de la cual obtiene informacion que usa durante tod0 el proceso
     """
 
-    def __init__(self, cadena_jobnames: list[ControlmJob], malla_origen: ControlmFolder, temporal: bool = False):
+    def __init__(self, cadena_jobnames: list[ControlmJob], malla_origen: ControlmFolder):
         """
         Constructor
 
@@ -1154,7 +1154,7 @@ class MallaMaxi:
 
             job: ControlmJob
 
-            job.atributos['DESCRIPTION'] += f'Creado automáticamente por generador de mallas temporales {caso_d_uso}'
+            job.atributos['DESCRIPTION'] += f'. Creado automáticamente por generador de mallas temporales {caso_d_uso}'
 
             for name, value in job.variables.items():
                 if '%%$ODATE' in value:
@@ -1337,6 +1337,6 @@ if __name__ == '__main__':
     ]
 
     m_max.replicar_y_enlazar(fechas_a_iterar)
-    m_max.ambientar('jemonjelos@bbva.com', 'OOOOCA_temporal', 'ALERTADuPortENIOO', 'O00000')
+    m_max.ambientar('jemonjelos@bbva.com', 'CR-ARMOLTMP-T99', 'caso_test', 'O00000')
 
     m_max.exportar(os.getcwd())
