@@ -56,7 +56,6 @@ from datetime import datetime
 
 from controlm.structures import MallaMaxi
 
-
 api_url = f'https://api.argentinadatos.com/v1/feriados/'
 
 fechas_seleccionadas = []
@@ -73,9 +72,7 @@ def ruta_absoluta(rel_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, rel_path)
 
-
 ruta_modelo = ruta_absoluta('model.h5')
-
 
 def es_fecha_valida(fecha):
     """
@@ -105,7 +102,6 @@ def es_fecha_valida(fecha):
             fechas_a_generar_jobs.append(fecha_str)
 
     return fechas_a_generar_jobs
-
 
 def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manual=None):
     """
@@ -176,18 +172,6 @@ def select_attached_file():
     except:
         messagebox.showinfo("Fallo", "Archivo adjunto no se cargo.")
 
-def save_job():
-
-    if not new_folder_name:
-        messagebox.showwarning("Advertencia", "No hay malla modificada para descargar o el archivo no existe.")
-        return
-
-    save_path = filedialog.asksaveasfilename(defaultextension=".xml", filetypes=[("XML files", "*.xml")],
-                                             initialfile=os.path.basename(modified_file_path))
-
-    m_max.exportar(save_path)
-    messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
-
 def confirmar_seleccion():
 
     global modified_file_path, selected_jobs_listbox, caso_uso_var, mail_entry, start_date_entry, end_date_entry, job_listbox
@@ -208,11 +192,20 @@ def confirmar_seleccion():
                                              end_date_entry.get_date(), selected_jobs, caso_uso_var.get(),
                                              seleccion_var.get(), legajo_var.get(), None)
         messagebox.showinfo("Éxito", "La malla ha sido modificada y guardada temporalmente.")
+        if not new_folder_name:
+            messagebox.showwarning("Advertencia", "No hay malla modificada para descargar o el archivo no existe.")
+            return
+
+        save_path = filedialog.asksaveasfilename(defaultextension=".xml", filetypes=[("XML files", "*.xml")],
+                                                 initialfile=os.path.basename(modified_file_path))
+
+        m_max.exportar(save_path)
+        messagebox.showinfo("Éxito", f"Malla descargada en: {save_path}")
 
     elif selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() == "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), None,
                                              None, selected_jobs, caso_uso_var.get(),
-                                             seleccion_var.get(), fechas_seleccionadas)
+                                             seleccion_var.get(), legajo_var.get(),fechas_seleccionadas)
 
     elif not caso_uso_var.get() or not mail_entry.get():
         messagebox.showwarning("Advertencia", "Por favor, completar todos los campos.")
@@ -325,66 +318,81 @@ def seleccionar_todos():
 def interfaz_seleccion_job():
     global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox,legajo_var,var_seleccion
 
-    tk.Label(dias_jobs_frame, text="Mail:", font=("Arial", 12), bg="white").grid(row=3, column=2, sticky="e", pady=5,
+    tk.Label(dias_jobs_frame, text="Mail:", font=("Arial", 12,"bold"),  bg="#131c46", fg ="white").grid(row=5, column=2, sticky="e", pady=5,
                                                                                  padx=5)
     mail_entry = tk.Entry(dias_jobs_frame, font=("Arial", 12))
-    mail_entry.grid(row=3, column=3, pady=5, padx=5)
+    mail_entry.grid(row=5, column=3, pady=5, padx=(0,120))
 
-    tk.Label(dias_jobs_frame, text="Legajo / Caso de uso:", font=("Arial", 12), bg="white").grid(row=4, column=2, sticky="e",
+    tk.Label(dias_jobs_frame, text="Legajo:", font=("Arial", 12,"bold"), bg="#131c46", fg ="white").grid(row=6, column=2, sticky="e",
                                                                                         pady=5, padx=5)
-    caso_uso_var = tk.StringVar(value="RELIABILITY")
-    caso_uso_menu = tk.OptionMenu(dias_jobs_frame, caso_uso_var, "CDD/BAU", "HORIZON A", "HORIZON B", "HORIZON C",
-                                  "DATIO EVO", "ADA", "DIGITAL WORK PLACE", "RELIABILITY", "ALPHA", "RECLAMO",
-                                  "BCBS239")
-    caso_uso_menu.config(font=("Arial", 10))
-    caso_uso_menu.grid(row=4, column=3, pady=5, padx=(100,0))
+    legajo_var = tk.Entry(dias_jobs_frame, font=("Arial", 12))
+    legajo_var.grid(row=6, column=3, pady=5, padx=(0,120))
 
-    legajo_var = tk.Entry(dias_jobs_frame, font=("Arial", 12), width=8)
-    legajo_var.grid(row=4, column=3, pady=5, padx=(0,120))
+    tk.Label(dias_jobs_frame, text="Caso de uso:", font=("Arial", 12, "bold"), bg="#131c46", fg="white").grid(row=7,
+                                                                                                         column=2,
+                                                                                                         sticky="e",
+                                                                                                         pady=5, padx=5)
 
-    attachment_button = tk.Button(dias_jobs_frame, text="Adjuntar malla", command=select_attached_file,
-                                  font=("Arial", 12))
-    attachment_button.grid(row=5, column=2, columnspan=2, pady=10)
+    caso_uso_var = tk.Entry(dias_jobs_frame, font=("Arial", 12))
+    caso_uso_var.grid(row=7, column=3, pady=5, padx=(0,120))
+
+    attachment_button = tk.Button(dias_jobs_frame, text="ADJUNTAR MALLA", command=select_attached_file,
+                                  font=("Arial", 12,"bold"), bg="#3c4c8f",fg ="white")
+    attachment_button.grid(row=0, column=3, pady=(0,45),padx=(50,0))
 
     var_seleccion = BooleanVar()
 
-    check_button = Checkbutton(dias_jobs_frame, text="Seleccionar Todos", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 10))
-    check_button.grid(row=5, column=2, columnspan=1, pady=10)
+    check_button = Checkbutton(dias_jobs_frame, text="SELECIONAR TODOS", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 12),bg="#131c46", fg="white")
+    check_button.grid(row=0, column=2, columnspan=1, pady=(0,45),padx=(50,0))
 
 
-    entry_buscar = tk.Entry(dias_jobs_frame, font=("Arial", 12), fg='grey')
-    entry_buscar.grid(row=6, column=2, columnspan=2, pady=5, padx=2, sticky="ew")
-    entry_buscar.insert(0, "Seleccione jobs")
+    entry_buscar = tk.Entry(dias_jobs_frame, font=("Arial", 14), fg='grey',width=42)
+    entry_buscar.grid(row=0, column=2, columnspan=2, pady=(25,0), padx=(40,0))
+    entry_buscar.insert(0, "Buscar job por nombre")
 
     entry_buscar.bind('<FocusIn>', on_entry_click)
     entry_buscar.bind('<FocusOut>', on_focusout)
 
-    scrollbar = tk.Scrollbar(dias_jobs_frame, orient="vertical")
-    job_listbox = tk.Listbox(dias_jobs_frame, selectmode="multiple", font=("Arial", 12), width=50, height=7,
-                             yscrollcommand=scrollbar.set)
-    job_listbox.grid(row=7, column=2, columnspan=2, pady=5, padx=2)
-    scrollbar.config(command=job_listbox.yview)
-    scrollbar.grid(row=7, column=4, sticky="ns", padx=(0, 30), pady=5)
+    listbox_frame = tk.Frame(dias_jobs_frame)
+    listbox_frame.grid(row=0, column=2, pady=(200, 0), padx=(40,0), columnspan=2)
 
-    selected_jobs_label = tk.Label(dias_jobs_frame, text="Jobs Seleccionados", font=("Arial", 12), bg="white")
-    selected_jobs_label.grid(row=6, column=1, padx=5, pady=5)
-    scrollbar_selec = tk.Scrollbar(dias_jobs_frame, orient="vertical")
-    selected_jobs_listbox = tk.Listbox(dias_jobs_frame, selectmode="multiple", font=("Arial", 12), width=40, height=7,
-                                       yscrollcommand=scrollbar_selec.set)
-    selected_jobs_listbox.grid(row=7, column=1, padx=(0, 40), pady=2)
-    scrollbar_selec.config(command=selected_jobs_listbox.yview)
-    scrollbar_selec.grid(row=7, column=0, sticky="ns", padx=(60, 0), pady=5)
+    # Configurar el Listbox dentro del contenedor
+    job_listbox = tk.Listbox(listbox_frame, selectmode="multiple", font=("Arial", 12), width=50, height=7,
+                             # Ajusta height según necesites
+                             yscrollcommand=lambda *args: scrollbar.set(*args))
+    job_listbox.grid(row=0, column=0)
+
+    # Configurar la Scrollbar dentro del mismo contenedor
+    scrollbar = tk.Scrollbar(listbox_frame, orient="vertical", command=job_listbox.yview)
+    scrollbar.grid(row=0, column=1, sticky="ns")  # Solo el Listbox ocupa toda la altura
+
+    # Enlazar la Scrollbar con el Listbox
+    job_listbox.config(yscrollcommand=scrollbar.set)
+
+    selected_jobs_label = tk.Label(dias_jobs_frame, text="JOBS SELECCIONADOS", font=("Arial", 16,"bold"), bg="#131c46", fg ="white")
+    selected_jobs_label.grid(row=0, column=1, padx=5, pady=(0,10))
+    selected_jobs_frame = tk.Frame(dias_jobs_frame)
+    selected_jobs_frame.grid(row=0, column=1, padx=(20,0), pady=(200, 0))
+
+    # Configurar el Listbox dentro del contenedor
+    selected_jobs_listbox = tk.Listbox(selected_jobs_frame, selectmode="multiple", font=("Arial", 12), width=40,
+                                       height=7,  # Ajusta el height según necesites
+                                       yscrollcommand=lambda *args: scrollbar_selec.set(*args))
+    selected_jobs_listbox.grid(row=0, column=0)
+
+    # Configurar la Scrollbar dentro del mismo contenedor
+    scrollbar_selec = tk.Scrollbar(selected_jobs_frame, orient="vertical", command=selected_jobs_listbox.yview)
+    scrollbar_selec.grid(row=0, column=1, sticky="ns")  # La barra ocupa solo la altura del Listbox
+
+    # Enlazar la Scrollbar con el Listbox
+    selected_jobs_listbox.config(yscrollcommand=scrollbar_selec.set)
 
     # Vincular eventos a los Listbox
     entry_buscar.bind('<KeyRelease>', filtrar_jobs)
     job_listbox.bind('<ButtonRelease-1>', on_job_click)
 
-    confirm_button = tk.Button(dias_jobs_frame, text="Confirmar Selección", command=confirmar_seleccion,
-                               font=("Arial", 12), width=20)
-    confirm_button.grid(row=8, column=1, columnspan=2, padx=(200, 0), pady=8)
-
     # Botón para descargar la malla temporal modificada
-    save_button = tk.Button(dias_jobs_frame, text="Descargar Temporal", command=save_job, font=("Arial", 12), width=20)
+    save_button = tk.Button(dias_jobs_frame, text="GENERAR MALLA TEMPORAL", command=confirmar_seleccion, font=("Arial", 12,"bold"), bg="#00b89f", fg ="white", width=28, height=3)
     save_button.grid(row=9, column=1, columnspan=2, padx=(200, 0), pady=8)
 
 def guardar_fecha(fecha):
@@ -425,33 +433,36 @@ def actualizar_estado_entradas():
 def actualizar_interfaz():
     global dias_jobs_frame, seleccion_var, fechas_seleccionadas, start_date_entry, end_date_entry,calendario_button
 
-    titulo_label = tk.Label(dias_jobs_frame, text="Generador Mallas Reliability", font=("Arial", 16, "bold"),
-                            bg="white")
+    titulo_label = tk.Label(dias_jobs_frame, text="GENERADOR MALLAS TEMPORALES", font=("Arial", 20, "bold"),
+                            bg="#131c46",fg="#00b89f",width=55)
 
-    titulo_label.grid(row=0, column=1, columnspan=3, pady=10)
+    titulo_label.grid(row=0, column=1, columnspan=3, pady=(0,280),padx=(0,1))
 
-    tk.Radiobutton(dias_jobs_frame, text="Seleccionar todos los días", variable=seleccion_var, value="todos_los_dias",
-                   font=("Arial", 12), bg="white",command=actualizar_estado_entradas).grid(row=2, column=1, sticky="w", padx=10, pady=5)
-    tk.Radiobutton(dias_jobs_frame, text="Seleccionar días hábiles", variable=seleccion_var, value="dias_habiles",
-                   font=("Arial", 12), bg="white",command=actualizar_estado_entradas).grid(row=3, column=1, sticky="w", padx=10, pady=5)
-    tk.Radiobutton(dias_jobs_frame, text="Carga manual (sin rango)", variable=seleccion_var, value="carga_manual",
-                   font=("Arial", 12), bg="white",command=actualizar_estado_entradas).grid(row=4, column=1, sticky="w", padx=10, pady=5)
+    tk.Radiobutton(dias_jobs_frame, text="  Días corridos  ", variable=seleccion_var, value="todos_los_dias",
+                   font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
+                   command=actualizar_estado_entradas).grid(row=5, column=1, sticky="w", padx=10, pady=2)
+    tk.Radiobutton(dias_jobs_frame, text="  Días hábiles  ", variable=seleccion_var, value="dias_habiles",
+                   font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
+                   command=actualizar_estado_entradas).grid(row=6, column=1, sticky="w", padx=10, pady=2)
+    tk.Radiobutton(dias_jobs_frame, text="  Carga manual    ", variable=seleccion_var, value="carga_manual",
+                   font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
+                   command=actualizar_estado_entradas).grid(row=7, column=1, sticky="w", padx=10, pady=2)
 
-    calendario_button = tk.Button(dias_jobs_frame, text="Calendario manual", font=("Arial", 12), bg="white",
+    calendario_button = tk.Button(dias_jobs_frame, text="CALENDARIO MANUAL", font=("Arial", 12,"bold"), bg="#3c4c8f",fg ="white",
               command=abrir_calendario)
-    calendario_button.grid(row=0, column=3, padx=10, pady=(100,0))
+    calendario_button.grid(row=4, column=1, sticky="w", padx=10, pady=5)
 
-    tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12), bg="white").grid(row=1, column=2, sticky="e",
+    tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12,"bold"),  bg="#131c46", fg ="white").grid(row=3, column=2, sticky="e",
                                                                                   pady=5, padx=5)
-    start_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white',
+    start_date_entry = DateEntry(dias_jobs_frame, width=18, background='darkblue', foreground='white',
                                  borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy',state="readonly")
-    start_date_entry.grid(row=1, column=3, pady=5, padx=5)
+    start_date_entry.grid(row=3, column=3, pady=5, padx=(0,120))
 
-    tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12), bg="white").grid(row=2, column=2, sticky="e",
+    tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12,"bold"),  bg="#131c46", fg ="white").grid(row=4, column=2, sticky="e",
                                                                                   pady=5, padx=5)
-    end_date_entry = DateEntry(dias_jobs_frame, width=15, background='darkblue', foreground='white', borderwidth=2,
+    end_date_entry = DateEntry(dias_jobs_frame, width=18, background='darkblue', foreground='white', borderwidth=2,
                                font=("Arial", 12), date_pattern='dd/MM/yyyy',state="readonly")
-    end_date_entry.grid(row=2, column=3, pady=5, padx=5)
+    end_date_entry.grid(row=4, column=3, pady=5, padx=(0,120))
 
     interfaz_seleccion_job()
 
@@ -467,50 +478,59 @@ def seleccionar_fecha(calendario):
         for event in calendario.get_calevents(fecha_obj):
             calendario.calevent_remove(event)
 
-
 def mostrar_fechas(listbox):
     listbox.delete(0, tk.END)
     for fecha in fechas_seleccionadas:
         listbox.insert(tk.END, fecha)
 
-
 def main():
     global original_jobs, selected_jobs_global,dias_jobs_frame,seleccion_var
 
-    root = tk.Tk()
-    root.title("Generador de Mallas Temporales - BBVA")
-    icon_path = "Sources/imagen/bbva.ico"
-    root.iconbitmap(icon_path)
-    root.geometry("1000x700")
-    root.resizable(False, False)
+    try:
+        root = tk.Tk()
+        root.title("Generador de Mallas Temporales - BBVA")
+        icon_path = "Sources/imagen/bbva.ico"
+        root.iconbitmap(icon_path)
+        root.geometry("1000x700")
+        root.resizable(True, True)
+        # Cargar la imagen de fondo
+        #bg_image = Image.open(os.path.join("Sources", "imagen", "logo_2.png"))
+        #bg_image = bg_image.resize((1000, 700), Image.LANCZOS)
+        #bg_photo = ImageTk.PhotoImage(bg_image)
+        original_jobs = []
 
-    # Cargar la imagen de fondo
-    bg_image = Image.open(os.path.join("Sources", "imagen", "logo_2.png"))
-    bg_image = bg_image.resize((1000, 700), Image.LANCZOS)
-    bg_photo = ImageTk.PhotoImage(bg_image)
-    original_jobs = []
+        dias_jobs_frame = tk.Frame(root, padx=4, pady=8, bg="#131c46", highlightthickness=0, relief="flat")
+        dias_jobs_frame.pack(expand=True, fill="both")
 
-    dias_jobs_frame = tk.Frame(root, padx=4, pady=8, bg="white", highlightthickness=0, relief="flat")
-    dias_jobs_frame.pack(expand=True, fill="both")
+        # Añadir la imagen de fondo al frame
+        #bg_label1 = tk.Label(dias_jobs_frame, image=bg_photo, borderwidth=0, highlightthickness=0)
+        #bg_label1.place(x=0, y=0, relwidth=1, relheight=1)
 
-    # Añadir la imagen de fondo al frame
-    bg_label1 = tk.Label(dias_jobs_frame, image=bg_photo, borderwidth=0, highlightthickness=0)
-    bg_label1.place(x=0, y=0, relwidth=1, relheight=1)
+        # Configurar el grid para centrar el contenido
+        dias_jobs_frame.grid_rowconfigure(0, weight=1)
+        dias_jobs_frame.grid_rowconfigure(9, weight=1)
+        dias_jobs_frame.grid_columnconfigure(0, weight=1)
+        dias_jobs_frame.grid_columnconfigure(5, weight=1)
 
-    # Configurar el grid para centrar el contenido
-    dias_jobs_frame.grid_rowconfigure(0, weight=1)
-    dias_jobs_frame.grid_rowconfigure(9, weight=1)
-    dias_jobs_frame.grid_columnconfigure(0, weight=1)
-    dias_jobs_frame.grid_columnconfigure(5, weight=1)
+        fechas_seleccionadas = []
 
-    seleccion_var = tk.StringVar(value="dias_habiles")
+        seleccion_var = tk.StringVar(value="dias_habiles")
 
-    actualizar_interfaz()
-    start_date_entry.config(state="readonly")
-    end_date_entry.config(state="readonly")
-    calendario_button.config(state='disabled')
-    seleccion_var.trace("w", lambda *args: actualizar_interfaz())
-    root.mainloop()
+        actualizar_interfaz()
+        start_date_entry.config(state="readonly")
+        end_date_entry.config(state="readonly")
+        calendario_button.config(state='disabled')
+        seleccion_var.trace("w", lambda *args: actualizar_interfaz())
+
+        root.mainloop()
+
+    except Exception as e:
+        # Manejo de errores y logging
+        logging.basicConfig(filename='error_log.txt', level=logging.ERROR)
+        logging.error("Se produjo un error: %s", e)
+        logging.error(traceback.format_exc())
+        print(f"Se produjo un error: {e}")
+        input("Presiona Enter para salir...")  # Evitar que la aplicación se cierre inmediatamente
 
 
 if __name__ == "__main__":
