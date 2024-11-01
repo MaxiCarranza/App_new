@@ -43,6 +43,8 @@ import logging
 import random
 import os
 import xml.etree.ElementTree as ET
+from tkinter.ttk import Radiobutton
+
 import requests
 import pandas as pd
 import re
@@ -124,7 +126,7 @@ def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manua
     # Por defecto, retornar todas las fechas en el rango
     return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
 
-def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,fechas_manual=None):
+def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,var_force,fechas_manual=None):
     """
     Función para modificar la malla.
 
@@ -140,8 +142,6 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     nro_malla = str(random.randint(10, 99))
     new_folder_name = f"CR-AR{malla.uuaa}TMP-T{nro_malla}"
 
-    jobs_creados = []
-
     fechas_a_iterar = obtener_fechas_optimizado(start_date, end_date, fechas_pross, fechas_manual)
     jobs_to_duplicate = [job for job in malla.jobs() if job.name in selected_jobs]
 
@@ -149,7 +149,7 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
     m_max = MallaMaxi(jobs_to_duplicate, malla)
     m_max.ordenar()
     m_max.replicar_y_enlazar(fechas_a_iterar)
-    m_max.ambientar(mail_personal, new_folder_name, caso_de_uso, legajo)
+    m_max.ambientar(mail_personal, new_folder_name, caso_de_uso, legajo,var_force)
 
     return new_folder_name
 
@@ -194,7 +194,7 @@ def confirmar_seleccion():
     if selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() != "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), start_date_entry.get_date(),
                                              end_date_entry.get_date(), selected_jobs, caso_uso_var.get(),
-                                             seleccion_var.get(), legajo_var.get(), None)
+                                             seleccion_var.get(), legajo_var.get(),var_force.get(), None)
         messagebox.showinfo("Éxito", "La malla ha sido modificada y guardada temporalmente.")
         if not new_folder_name:
             messagebox.showwarning("Advertencia", "No hay malla modificada para descargar o el archivo no existe.")
@@ -209,7 +209,7 @@ def confirmar_seleccion():
     elif selected_jobs and attached_file_path and caso_uso_var.get() and mail_entry.get() and seleccion_var.get() == "carga_manual":
         modified_file_path = modificar_malla(attached_file_path, mail_entry.get(), None,
                                              None, selected_jobs, caso_uso_var.get(),
-                                             seleccion_var.get(), legajo_var.get(),fechas_seleccionadas)
+                                             seleccion_var.get(), legajo_var.get(),var_force.get(),fechas_seleccionadas)
 
     elif not caso_uso_var.get() or not mail_entry.get():
         messagebox.showwarning("Advertencia", "Por favor, completar todos los campos.")
@@ -282,14 +282,29 @@ def on_job_click(event):
 
     update_selected_jobs_listbox()
 
+
 def on_entry_click(event):
-    if entry_buscar.get() == "Seleccione jobs":
+    if entry_buscar.get() == "Buscar job por nombre":
         entry_buscar.delete(0, tk.END)  # Eliminar el texto
         entry_buscar.config(fg='black')
 
+def color_seleccion(event):
+    if var_force.get() == True:
+        check_force.config(fg="white")
+    elif var_force.get() == False:
+        check_force.config(fg="#00b89f")
+
+def color_seleccion_2(event):
+    if var_seleccion.get() == True:
+        check_button.config(fg="white")
+    elif var_seleccion.get() == False:
+        check_button.config(fg="#00b89f")
+
+
+
 def on_focusout(event):
     if entry_buscar.get() == "":
-        entry_buscar.insert(0, "Seleccione jobs")
+        entry_buscar.insert(0, "Buscar job por nombre")
         entry_buscar.config(fg='grey')
 
 def validate_email(email):
@@ -307,12 +322,10 @@ def validate_legajo(legajo):
 def seleccionar_todos():
     clicked_job = job_listbox.get(0,tk.END)
     if var_seleccion.get():
-        # Selecciona todos los elementos en la lista
         job_listbox.select_set(0, tk.END)
         for i in clicked_job:
             selected_jobs_global.add(i)
     else:
-        # Deselecciona todos los elementos en la lista
         job_listbox.select_clear(0, tk.END)
         for i in clicked_job:
             selected_jobs_global.remove(i)
@@ -320,7 +333,9 @@ def seleccionar_todos():
     update_selected_jobs_listbox()
 
 def interfaz_seleccion_job():
-    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var, mail_entry, original_jobs, selected_jobs_listbox,legajo_var,var_seleccion
+    global job_listbox, selected_jobs_global, entry_buscar, caso_uso_var,\
+        mail_entry, original_jobs, selected_jobs_listbox,legajo_var,var_seleccion,\
+        var_force,check_force,check_button
 
     tk.Label(dias_jobs_frame, text="Mail:", font=("Arial", 12,"bold"),  bg="#131c46", fg ="white").grid(row=5, column=2, sticky="e", pady=5,
                                                                                  padx=5)
@@ -345,9 +360,14 @@ def interfaz_seleccion_job():
     attachment_button.grid(row=0, column=3, pady=(0,45),padx=(50,0))
 
     var_seleccion = BooleanVar()
+    var_force = BooleanVar()
 
-    check_button = Checkbutton(dias_jobs_frame, text="SELECIONAR TODOS", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 12),bg="#131c46", fg="white")
-    check_button.grid(row=0, column=2, columnspan=1, pady=(0,45),padx=(50,0))
+    check_force = Checkbutton(dias_jobs_frame, text="FORCE ORDER JOB", variable=var_force,
+                             font=("Arial", 10), bg="#131c46", fg="white")
+    check_force.grid(row=0, column=2, columnspan=1, pady=(0, 100), padx=(46, 0))
+
+    check_button = Checkbutton(dias_jobs_frame, text="SELECIONAR TODOS", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 10),bg="#131c46", fg="white")
+    check_button.grid(row=0, column=2, columnspan=1, pady=(0,50),padx=(56,0))
 
 
     entry_buscar = tk.Entry(dias_jobs_frame, font=("Arial", 14), fg='grey',width=42)
@@ -394,6 +414,13 @@ def interfaz_seleccion_job():
     # Vincular eventos a los Listbox
     entry_buscar.bind('<KeyRelease>', filtrar_jobs)
     job_listbox.bind('<ButtonRelease-1>', on_job_click)
+    check_force.bind('<ButtonRelease-1>', color_seleccion)
+    check_button.bind('<ButtonRelease-1>', color_seleccion_2)
+    fecha_op1.bind('<Button-1>', color_fechas_op)
+    fecha_op2.bind('<Button-1>', color_fechas_op)
+    fecha_op3.bind('<Button-1>', color_fechas_op)
+
+
 
     # Botón para descargar la malla temporal modificada
     save_button = tk.Button(dias_jobs_frame, text="GENERAR MALLA TEMPORAL", command=confirmar_seleccion, font=("Arial", 12,"bold"), bg="#00b89f", fg ="white", width=28, height=3)
@@ -434,23 +461,34 @@ def actualizar_estado_entradas():
         end_date_entry.config(state="readonly")
         calendario_button.config(state='disabled')
 
+def color_fechas_op(event):
+    event.widget.config(fg="#00b89f")
+
 def actualizar_interfaz():
-    global dias_jobs_frame, seleccion_var, fechas_seleccionadas, start_date_entry, end_date_entry,calendario_button
+    global dias_jobs_frame, seleccion_var, fechas_seleccionadas, start_date_entry, end_date_entry,\
+        calendario_button,fecha_op1,fecha_op2,fecha_op3
 
     titulo_label = tk.Label(dias_jobs_frame, text="GENERADOR MALLAS TEMPORALES", font=("Arial", 20, "bold"),
                             bg="#131c46",fg="#00b89f",width=55)
 
     titulo_label.grid(row=0, column=1, columnspan=3, pady=(0,280),padx=(0,1))
 
-    tk.Radiobutton(dias_jobs_frame, text="  Días corridos  ", variable=seleccion_var, value="todos_los_dias",
+    fecha_op1 = tk.Radiobutton(dias_jobs_frame, text="  Días corridos  ", variable=seleccion_var, value="todos_los_dias",
                    font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
-                   command=actualizar_estado_entradas).grid(row=5, column=1, sticky="w", padx=10, pady=2)
-    tk.Radiobutton(dias_jobs_frame, text="  Días hábiles  ", variable=seleccion_var, value="dias_habiles",
+                   command=actualizar_estado_entradas)
+    fecha_op1.grid(row=5, column=1, sticky="w", padx=10, pady=2)
+
+    fecha_op2 = tk.Radiobutton(dias_jobs_frame, text="  Días hábiles  ", variable=seleccion_var, value="dias_habiles",
                    font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
-                   command=actualizar_estado_entradas).grid(row=6, column=1, sticky="w", padx=10, pady=2)
-    tk.Radiobutton(dias_jobs_frame, text="  Carga manual    ", variable=seleccion_var, value="carga_manual",
+                   command=actualizar_estado_entradas)
+    fecha_op2.grid(row=6, column=1, sticky="w", padx=10, pady=2)
+
+    fecha_op3 = tk.Radiobutton(dias_jobs_frame, text="  Carga manual    ", variable=seleccion_var, value="carga_manual",
                    font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
-                   command=actualizar_estado_entradas).grid(row=7, column=1, sticky="w", padx=10, pady=2)
+                   command=actualizar_estado_entradas)
+    fecha_op3.grid(row=7, column=1, sticky="w", padx=10, pady=2)
+
+
 
     calendario_button = tk.Button(dias_jobs_frame, text="CALENDARIO MANUAL", font=("Arial", 12,"bold"), bg="#3c4c8f",fg ="white",
               command=abrir_calendario)

@@ -7,6 +7,7 @@ from __future__ import annotations
 import itertools
 import os
 import re
+from tkinter import BooleanVar
 
 from typing import Literal
 from copy import deepcopy
@@ -1137,17 +1138,12 @@ class MallaMaxi:
         self._ambientar_marcas(cadena_temporal)
         self.cadena_completa_temporal = cadena_temporal
 
-    def ambientar(self, mail: str, folder_name: str, caso_d_uso: str, legajo: str):
+    def ambientar(self, mail: str, folder_name: str, caso_d_uso: str, legajo: str, configurar_con_force: bool):
         """
         Ambienta los jobs a malla.
         """
 
         self._folder_name_exp = folder_name
-
-        if len(self.cadena_completa_temporal) >= Limits.MAX_JOBS_TMP:
-            configurar_con_force = True
-        else:
-            configurar_con_force = False
 
         # Cambio el valor %%ODATE por fecha seleccionada, en cada job de la cadena
         for job in self.cadena_completa_temporal:
