@@ -56,6 +56,7 @@ from datetime import datetime
 
 from controlm.structures import MallaMaxi
 
+
 api_url = f'https://api.argentinadatos.com/v1/feriados/'
 
 fechas_seleccionadas = []
@@ -72,7 +73,9 @@ def ruta_absoluta(rel_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, rel_path)
 
+
 ruta_modelo = ruta_absoluta('model.h5')
+
 
 def es_fecha_valida(fecha):
     """
@@ -84,10 +87,10 @@ def es_fecha_valida(fecha):
     non_chamba_days = []
     for anio in anios_seleccionados:
         try:
-            response = requests.get(api_url + anio)
+            response = requests.get(api_url + anio + '/', verify=False)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            print(f"Error al consultar la API de feriados: {e}")
+            logging.error("No se pudo conectar con la API de feriados: %s", e)
         else:
             feriados_data = response.json()
             non_chamba_days.extend([feriado['fecha'] for feriado in feriados_data])
@@ -102,6 +105,7 @@ def es_fecha_valida(fecha):
             fechas_a_generar_jobs.append(fecha_str)
 
     return fechas_a_generar_jobs
+
 
 def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manual=None):
     """
@@ -486,58 +490,49 @@ def mostrar_fechas(listbox):
 def main():
     global original_jobs, selected_jobs_global,dias_jobs_frame,seleccion_var
 
-    try:
-        root = tk.Tk()
-        root.title("Generador de Mallas Temporales - BBVA")
-        icon_path = "Sources/imagen/bbva.ico"
-        root.iconbitmap(icon_path)
-        root.geometry("1000x700")
-        root.resizable(True, True)
-        # Cargar la imagen de fondo
-        #bg_image = Image.open(os.path.join("Sources", "imagen", "logo_2.png"))
-        #bg_image = bg_image.resize((1000, 700), Image.LANCZOS)
-        #bg_photo = ImageTk.PhotoImage(bg_image)
-        original_jobs = []
+    root = tk.Tk()
+    root.title("Generador de Mallas Temporales - BBVA")
+    icon_path = "Sources/imagen/bbva.ico"
+    root.iconbitmap(icon_path)
+    root.geometry("1000x700")
+    root.resizable(True, True)
+    # Cargar la imagen de fondo
+    #bg_image = Image.open(os.path.join("Sources", "imagen", "logo_2.png"))
+    #bg_image = bg_image.resize((1000, 700), Image.LANCZOS)
+    #bg_photo = ImageTk.PhotoImage(bg_image)
+    original_jobs = []
 
-        dias_jobs_frame = tk.Frame(root, padx=4, pady=8, bg="#131c46", highlightthickness=0, relief="flat")
-        dias_jobs_frame.pack(expand=True, fill="both")
+    dias_jobs_frame = tk.Frame(root, padx=4, pady=8, bg="#131c46", highlightthickness=0, relief="flat")
+    dias_jobs_frame.pack(expand=True, fill="both")
 
-        # Añadir la imagen de fondo al frame
-        #bg_label1 = tk.Label(dias_jobs_frame, image=bg_photo, borderwidth=0, highlightthickness=0)
-        #bg_label1.place(x=0, y=0, relwidth=1, relheight=1)
+    # Añadir la imagen de fondo al frame
+    #bg_label1 = tk.Label(dias_jobs_frame, image=bg_photo, borderwidth=0, highlightthickness=0)
+    #bg_label1.place(x=0, y=0, relwidth=1, relheight=1)
 
-        # Configurar el grid para centrar el contenido
-        dias_jobs_frame.grid_rowconfigure(0, weight=1)
-        dias_jobs_frame.grid_rowconfigure(9, weight=1)
-        dias_jobs_frame.grid_columnconfigure(0, weight=1)
-        dias_jobs_frame.grid_columnconfigure(5, weight=1)
+    # Configurar el grid para centrar el contenido
+    dias_jobs_frame.grid_rowconfigure(0, weight=1)
+    dias_jobs_frame.grid_rowconfigure(9, weight=1)
+    dias_jobs_frame.grid_columnconfigure(0, weight=1)
+    dias_jobs_frame.grid_columnconfigure(5, weight=1)
 
-        fechas_seleccionadas = []
+    fechas_seleccionadas = []
 
-        seleccion_var = tk.StringVar(value="dias_habiles")
+    seleccion_var = tk.StringVar(value="dias_habiles")
 
-        actualizar_interfaz()
-        start_date_entry.config(state="readonly")
-        end_date_entry.config(state="readonly")
-        calendario_button.config(state='disabled')
-        seleccion_var.trace("w", lambda *args: actualizar_interfaz())
+    actualizar_interfaz()
+    start_date_entry.config(state="readonly")
+    end_date_entry.config(state="readonly")
+    calendario_button.config(state='disabled')
+    seleccion_var.trace("w", lambda *args: actualizar_interfaz())
 
-        root.mainloop()
-
-    except Exception as e:
-        # Manejo de errores y logging
-        logging.basicConfig(filename='error_log.txt', level=logging.ERROR)
-        logging.error("Se produjo un error: %s", e)
-        logging.error(traceback.format_exc())
-        print(f"Se produjo un error: {e}")
-        input("Presiona Enter para salir...")  # Evitar que la aplicación se cierre inmediatamente
+    root.mainloop()
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        tk.messagebox.showerror(title="Error", message=str(e))
+        messagebox.showerror(title="Error", message=str(e))
         logging.basicConfig(filename='error.log', level=logging.ERROR, filemode='w')
         logging.error("Se produjo un error: %s", e)
         logging.error(traceback.format_exc())
