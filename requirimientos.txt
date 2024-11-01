@@ -1,7 +1,5 @@
 pandas
-tensorflow
-scikit-learn
-pillow
 tkcalendar
 requests
-tkcalendar
+cx_Freeze
+pillow
