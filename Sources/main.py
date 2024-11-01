@@ -46,15 +46,14 @@ import xml.etree.ElementTree as ET
 from tkinter.ttk import Radiobutton
 
 import requests
-import pandas as pd
 import re
 import tkinter as tk
 
 from controlm.structures import ControlmFolder
 from tkinter import messagebox, filedialog, Checkbutton, BooleanVar
-from PIL import Image, ImageTk
 from tkcalendar import DateEntry, Calendar
 from datetime import datetime
+from datetime import timedelta
 
 from controlm.structures import MallaMaxi
 
@@ -77,6 +76,16 @@ def ruta_absoluta(rel_path):
 
 
 ruta_modelo = ruta_absoluta('model.h5')
+
+
+def generar_dates(start_date: datetime, end_date: datetime):
+    """Genera una lista de datetimes posibles dadas dos fechas que definen el intervalo"""
+    dates = []
+    current_date = start_date
+    while current_date <= end_date:
+        dates.append(current_date)
+        current_date += timedelta(days=1)
+    return dates
 
 
 def es_fecha_valida(fecha):
@@ -119,12 +128,12 @@ def obtener_fechas_optimizado(current_date, end_date, fechas_pross, fechas_manua
 
     # Si fechas_pross es "dias_habiles", generar solo días hábiles
     if fechas_pross == "dias_habiles":
-        fechas_a_work = pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
+        fechas_a_work = generar_dates(start_date =current_date, end_date=end_date)
         fecha_habil = es_fecha_valida(fechas_a_work)
         return fecha_habil
 
     # Por defecto, retornar todas las fechas en el rango
-    return pd.date_range(start=current_date, end=end_date).to_pydatetime().tolist()
+    return generar_dates(start_date =current_date, end_date=end_date)
 
 def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs, caso_de_uso, fechas_pross,legajo,var_force,fechas_manual=None):
     """
