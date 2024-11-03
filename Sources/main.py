@@ -174,6 +174,7 @@ def select_attached_file():
         # Limpia las listas si ya estaban cargada previamentes
         job_listbox.delete(0, tk.END)
         selected_jobs_listbox.delete(0, tk.END)
+        selected_jobs_global.clear()
 
         job_names_from_xml = malla.jobnames()
 
@@ -309,8 +310,6 @@ def color_seleccion_2(event):
     elif var_seleccion.get() == False:
         check_button.config(fg="#00b89f")
 
-
-
 def on_focusout(event):
     if entry_buscar.get() == "":
         entry_buscar.insert(0, "Buscar job por nombre")
@@ -425,11 +424,6 @@ def interfaz_seleccion_job():
     job_listbox.bind('<ButtonRelease-1>', on_job_click)
     check_force.bind('<ButtonRelease-1>', color_seleccion)
     check_button.bind('<ButtonRelease-1>', color_seleccion_2)
-    fecha_op1.bind('<Button-1>', color_fechas_op)
-    fecha_op2.bind('<Button-1>', color_fechas_op)
-    fecha_op3.bind('<Button-1>', color_fechas_op)
-
-
 
     # Botón para descargar la malla temporal modificada
     save_button = tk.Button(dias_jobs_frame, text="GENERAR MALLA TEMPORAL", command=confirmar_seleccion, font=("Arial", 12,"bold"), bg="#00b89f", fg ="white", width=28, height=3)
@@ -442,9 +436,14 @@ def guardar_fecha(fecha):
 
 def abrir_calendario():
     global fechas_seleccionadas
+    start_date_entry.config(state='disabled')
+    end_date_entry.config(state='disabled')
+    fecha_op3.config(fg="#00b89f")
+    fecha_op1.config(fg="white")
+    fecha_op2.config(fg="white")
     ventana_calendario = tk.Toplevel(dias_jobs_frame)
     ventana_calendario.title("Seleccionar Fechas")
-    icon_path = "Sources/imagen/bbva.ico"
+    icon_path = "imagen/bbva.ico"
     ventana_calendario.iconbitmap(icon_path)
 
     calendario = Calendar(ventana_calendario, selectmode='day', year=2024, month=9, day=1)
@@ -461,61 +460,16 @@ def abrir_calendario():
     calendario.bind("<<CalendarSelected>>", lambda event: seleccionar_fecha(calendario))
 
 def actualizar_estado_entradas():
-    # Verifica el valor de seleccion_var y deshabilita o habilita los DateEntry según corresponda
-    if seleccion_var.get() == "carga_manual":
-        start_date_entry.config(state='disabled')
-        end_date_entry.config(state='disabled')
-    else:
-        start_date_entry.config(state="readonly")
-        end_date_entry.config(state="readonly")
-        calendario_button.config(state='disabled')
-
-def color_fechas_op(event):
-    event.widget.config(fg="#00b89f")
-
-def actualizar_interfaz():
-    global dias_jobs_frame, seleccion_var, fechas_seleccionadas, start_date_entry, end_date_entry,\
-        calendario_button,fecha_op1,fecha_op2,fecha_op3
-
-    titulo_label = tk.Label(dias_jobs_frame, text="GENERADOR MALLAS TEMPORALES", font=("Arial", 20, "bold"),
-                            bg="#131c46",fg="#00b89f",width=55)
-
-    titulo_label.grid(row=0, column=1, columnspan=3, pady=(0,280),padx=(0,1))
-
-    fecha_op1 = tk.Radiobutton(dias_jobs_frame, text="  Días corridos  ", variable=seleccion_var, value="todos_los_dias",
-                   font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
-                   command=actualizar_estado_entradas)
-    fecha_op1.grid(row=5, column=1, sticky="w", padx=10, pady=2)
-
-    fecha_op2 = tk.Radiobutton(dias_jobs_frame, text="  Días hábiles  ", variable=seleccion_var, value="dias_habiles",
-                   font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
-                   command=actualizar_estado_entradas)
-    fecha_op2.grid(row=6, column=1, sticky="w", padx=10, pady=2)
-
-    fecha_op3 = tk.Radiobutton(dias_jobs_frame, text="  Carga manual    ", variable=seleccion_var, value="carga_manual",
-                   font=("Arial", 12,"bold"), bg="#131c46", fg ="white", width=25,anchor="w", justify="left",
-                   command=actualizar_estado_entradas)
-    fecha_op3.grid(row=7, column=1, sticky="w", padx=10, pady=2)
-
-
-
-    calendario_button = tk.Button(dias_jobs_frame, text="CALENDARIO MANUAL", font=("Arial", 12,"bold"), bg="#3c4c8f",fg ="white",
-              command=abrir_calendario)
-    calendario_button.grid(row=4, column=1, sticky="w", padx=10, pady=5)
-
-    tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12,"bold"),  bg="#131c46", fg ="white").grid(row=3, column=2, sticky="e",
-                                                                                  pady=5, padx=5)
-    start_date_entry = DateEntry(dias_jobs_frame, width=18, background='darkblue', foreground='white',
-                                 borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy',state="readonly")
-    start_date_entry.grid(row=3, column=3, pady=5, padx=(0,120))
-
-    tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12,"bold"),  bg="#131c46", fg ="white").grid(row=4, column=2, sticky="e",
-                                                                                  pady=5, padx=5)
-    end_date_entry = DateEntry(dias_jobs_frame, width=18, background='darkblue', foreground='white', borderwidth=2,
-                               font=("Arial", 12), date_pattern='dd/MM/yyyy',state="readonly")
-    end_date_entry.grid(row=4, column=3, pady=5, padx=(0,120))
-
-    interfaz_seleccion_job()
+    start_date_entry.config(state="readonly")
+    end_date_entry.config(state="readonly")
+    if seleccion_var.get() == "todos_los_dias":
+        fecha_op1.config(fg="#00b89f")
+        fecha_op2.config(fg="white")
+        fecha_op3.config(fg="white")
+    elif seleccion_var.get() == "dias_habiles":
+        fecha_op1.config(fg="white")
+        fecha_op2.config(fg="#00b89f")
+        fecha_op3.config(fg="white")
 
 def seleccionar_fecha(calendario):
     fecha_str = calendario.get_date()
@@ -535,11 +489,13 @@ def mostrar_fechas(listbox):
         listbox.insert(tk.END, fecha)
 
 def main():
-    global original_jobs, selected_jobs_global,dias_jobs_frame,seleccion_var
+    global original_jobs, selected_jobs_global,dias_jobs_frame,seleccion_var, \
+        fechas_seleccionadas, start_date_entry, end_date_entry,\
+        fecha_op1,fecha_op2,fecha_op3
 
     root = tk.Tk()
     root.title("Generador de Mallas Temporales - BBVA")
-    icon_path = "Sources/imagen/bbva.ico"
+    icon_path = "imagen/bbva.ico"
     root.iconbitmap(icon_path)
     root.geometry("1000x700")
     root.resizable(True, True)
@@ -566,11 +522,45 @@ def main():
 
     seleccion_var = tk.StringVar(value="dias_habiles")
 
-    actualizar_interfaz()
-    start_date_entry.config(state="readonly")
-    end_date_entry.config(state="readonly")
-    calendario_button.config(state='disabled')
-    seleccion_var.trace("w", lambda *args: actualizar_interfaz())
+    titulo_label = tk.Label(dias_jobs_frame, text="GENERADOR MALLAS TEMPORALES", font=("Arial", 20, "bold"),
+                            bg="#131c46", fg="#00b89f", width=55)
+
+    titulo_label.grid(row=0, column=1, columnspan=3, pady=(0, 280), padx=(0, 1))
+
+    fecha_op1 = tk.Radiobutton(dias_jobs_frame, text="  Días corridos  ", variable=seleccion_var,
+                               value="todos_los_dias",
+                               font=("Arial", 12, "bold"), bg="#131c46", fg="white", width=25, anchor="w",
+                               justify="left",
+                               command=actualizar_estado_entradas)
+    fecha_op1.grid(row=5, column=1, sticky="w", padx=10, pady=2)
+
+    fecha_op2 = tk.Radiobutton(dias_jobs_frame, text="  Días hábiles  ", variable=seleccion_var, value="dias_habiles",
+                               font=("Arial", 12, "bold"), bg="#131c46", fg="white", width=25, anchor="w",
+                               justify="left",
+                               command=actualizar_estado_entradas)
+    fecha_op2.grid(row=6, column=1, sticky="w", padx=10, pady=2)
+
+    fecha_op3 = tk.Radiobutton(dias_jobs_frame, text="  Carga manual    ", variable=seleccion_var, value="carga_manual",
+                               font=("Arial", 12, "bold"), bg="#131c46", fg="white", width=25, anchor="w",
+                               justify="left",
+                               command=abrir_calendario)
+    fecha_op3.grid(row=7, column=1, sticky="w", padx=10, pady=2)
+
+    tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12, "bold"), bg="#131c46", fg="white").grid(row=3, column=2,
+                                                                                                        sticky="e",
+                                                                                                        pady=5, padx=5)
+    start_date_entry = DateEntry(dias_jobs_frame, width=18, background='darkblue', foreground='white',
+                                 borderwidth=2, font=("Arial", 12), date_pattern='dd/MM/yyyy', state="readonly")
+    start_date_entry.grid(row=3, column=3, pady=5, padx=(0, 120))
+
+    tk.Label(dias_jobs_frame, text="Hasta:", font=("Arial", 12, "bold"), bg="#131c46", fg="white").grid(row=4, column=2,
+                                                                                                        sticky="e",
+                                                                                                        pady=5, padx=5)
+    end_date_entry = DateEntry(dias_jobs_frame, width=18, background='darkblue', foreground='white', borderwidth=2,
+                               font=("Arial", 12), date_pattern='dd/MM/yyyy', state="readonly")
+    end_date_entry.grid(row=4, column=3, pady=5, padx=(0, 120))
+
+    interfaz_seleccion_job()
 
     root.mainloop()
 
