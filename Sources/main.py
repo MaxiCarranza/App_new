@@ -54,7 +54,7 @@ from tkinter import messagebox, filedialog, Checkbutton, BooleanVar
 from tkcalendar import DateEntry, Calendar
 from datetime import datetime
 from datetime import timedelta
-
+from PIL import Image, ImageTk
 from controlm.structures import MallaMaxi
 
 
@@ -365,7 +365,7 @@ def interfaz_seleccion_job():
 
     attachment_button = tk.Button(dias_jobs_frame, text="ADJUNTAR MALLA", command=select_attached_file,
                                   font=("Arial", 12,"bold"), bg="#3c4c8f",fg ="white")
-    attachment_button.grid(row=0, column=3, pady=(0,45),padx=(50,0))
+    attachment_button.grid(row=0, column=3, pady=(0,45),padx=(120,0))
 
     var_seleccion = BooleanVar()
     var_force = BooleanVar()
@@ -402,7 +402,7 @@ def interfaz_seleccion_job():
     job_listbox.config(yscrollcommand=scrollbar.set)
 
     selected_jobs_label = tk.Label(dias_jobs_frame, text="JOBS SELECCIONADOS", font=("Arial", 16,"bold"), bg="#131c46", fg ="white")
-    selected_jobs_label.grid(row=0, column=1, padx=5, pady=(0,10))
+    selected_jobs_label.grid(row=0, column=1, padx=5, pady=(5,0))
     selected_jobs_frame = tk.Frame(dias_jobs_frame)
     selected_jobs_frame.grid(row=0, column=1, padx=(20,0), pady=(200, 0))
 
@@ -427,7 +427,7 @@ def interfaz_seleccion_job():
 
     # Botón para descargar la malla temporal modificada
     save_button = tk.Button(dias_jobs_frame, text="GENERAR MALLA TEMPORAL", command=confirmar_seleccion, font=("Arial", 12,"bold"), bg="#00b89f", fg ="white", width=28, height=3)
-    save_button.grid(row=9, column=1, columnspan=2, padx=(200, 0), pady=8)
+    save_button.grid(row=9, column=1, columnspan=2, padx=(250, 0), pady=8)
 
 def guardar_fecha(fecha):
     global fechas_seleccionadas
@@ -443,7 +443,7 @@ def abrir_calendario():
     fecha_op2.config(fg="white")
     ventana_calendario = tk.Toplevel(dias_jobs_frame)
     ventana_calendario.title("Seleccionar Fechas")
-    icon_path = "imagen/bbva.ico"
+    icon_path = os.path.join(os.path.dirname(__file__), "imagen", "bbva.ico")
     ventana_calendario.iconbitmap(icon_path)
 
     calendario = Calendar(ventana_calendario, selectmode='day', year=2024, month=9, day=1)
@@ -495,11 +495,11 @@ def main():
 
     root = tk.Tk()
     root.title("Generador de Mallas Temporales - BBVA")
-    icon_path = "imagen/bbva.ico"
+    icon_path = os.path.join(os.path.dirname(__file__), "imagen", "bbva.ico")
     root.iconbitmap(icon_path)
     root.geometry("1000x700")
     root.resizable(True, True)
-    # Cargar la imagen de fondo
+
     #bg_image = Image.open(os.path.join("Sources", "imagen", "logo_2.png"))
     #bg_image = bg_image.resize((1000, 700), Image.LANCZOS)
     #bg_photo = ImageTk.PhotoImage(bg_image)
@@ -508,9 +508,6 @@ def main():
     dias_jobs_frame = tk.Frame(root, padx=4, pady=8, bg="#131c46", highlightthickness=0, relief="flat")
     dias_jobs_frame.pack(expand=True, fill="both")
 
-    # Añadir la imagen de fondo al frame
-    #bg_label1 = tk.Label(dias_jobs_frame, image=bg_photo, borderwidth=0, highlightthickness=0)
-    #bg_label1.place(x=0, y=0, relwidth=1, relheight=1)
 
     # Configurar el grid para centrar el contenido
     dias_jobs_frame.grid_rowconfigure(0, weight=1)
@@ -520,10 +517,27 @@ def main():
 
     fechas_seleccionadas = []
 
+    # Cargar la imagen de fondo
+    icon_path = os.path.join(os.path.dirname(__file__), "imagen", "im_bbva.png")
+    image = Image.open(icon_path)
+    image = image.resize((110, 40), Image.LANCZOS)
+    photo = ImageTk.PhotoImage(image)
+
+    # Crear un Label para la imagen y ubicarlo en la esquina superior izquierda
+    image_label = tk.Label(dias_jobs_frame, image=photo, bg="#131c46")
+    image_label.grid(row=0, column=0,columnspan=2, sticky="nw", padx=10, pady=10)
+    image_label.image = photo
+
+    reli_label_xd = tk.Label(dias_jobs_frame, text="By Reliability Argentina",font=("Arial", 12, "bold"), bg="#131c46",fg="White")
+    reli_label_xd.grid(row=9, column=2, columnspan=4, sticky="se", padx=5, pady=2)
+
+    dudas_label_xd = tk.Label(dias_jobs_frame, text="Dudas: ar-data-hub-solutions.group@bbva.com", font=("Arial", 12, "bold"), bg="#131c46",fg="White")
+    dudas_label_xd.grid(row=10, column=2, columnspan=4, sticky="se", padx=5, pady=2)
+
     seleccion_var = tk.StringVar(value="dias_habiles")
 
-    titulo_label = tk.Label(dias_jobs_frame, text="GENERADOR MALLAS TEMPORALES", font=("Arial", 20, "bold"),
-                            bg="#131c46", fg="#00b89f", width=55)
+    titulo_label = tk.Label(dias_jobs_frame, text="GENERADOR MALLAS TEMPORALES", font=("Arial", 25, "bold"),
+                            bg="#131c46", fg="#00b89f", width=30)
 
     titulo_label.grid(row=0, column=1, columnspan=3, pady=(0, 280), padx=(0, 1))
 
