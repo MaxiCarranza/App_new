@@ -109,6 +109,8 @@ def es_fecha_valida(fecha):
         finally:
             # Dia del bancario
             non_chamba_days.append(f'{anio}-11-06')
+            non_chamba_days.append(f'{anio}-12-24')
+            non_chamba_days.append(f'{anio}-12-31')
 
     fechas_a_generar_jobs = []
     for f in fecha:
@@ -554,19 +556,19 @@ def main():
                                font=("Arial", 12, "bold"), bg="#131c46", fg="white", width=25, anchor="w",
                                justify="left",
                                command=actualizar_estado_entradas)
-    fecha_op1.grid(row=5, column=1, sticky="w", padx=10, pady=2)
+    fecha_op1.grid(row=5, column=1, padx=(20,0), pady=2)
 
     fecha_op2 = tk.Radiobutton(dias_jobs_frame, text="  Días hábiles  ", variable=seleccion_var, value="dias_habiles",
                                font=("Arial", 12, "bold"), bg="#131c46", fg="white", width=25, anchor="w",
                                justify="left",
                                command=actualizar_estado_entradas)
-    fecha_op2.grid(row=6, column=1, sticky="w", padx=10, pady=2)
+    fecha_op2.grid(row=6, column=1, padx=(20,0), pady=2)
 
     fecha_op3 = tk.Radiobutton(dias_jobs_frame, text="  Carga manual    ", variable=seleccion_var, value="carga_manual",
                                font=("Arial", 12, "bold"), bg="#131c46", fg="white", width=25, anchor="w",
                                justify="left",
                                command=abrir_calendario)
-    fecha_op3.grid(row=7, column=1, sticky="w", padx=10, pady=2)
+    fecha_op3.grid(row=7, column=1, padx=(20,0), pady=2)
 
     tk.Label(dias_jobs_frame, text="Desde:", font=("Arial", 12, "bold"), bg="#131c46", fg="white").grid(row=3, column=2,
                                                                                                         sticky="e",
