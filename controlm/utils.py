@@ -106,6 +106,43 @@ def oofstr(s: str | None) -> str:
     return '' if s is None else str(s)
 
 
+def get_feriados_from_host(ruta_txt_nonchambahost: str) -> dict():
+    """
+    Retorna un diccionario con todos los feriados a partir de un archivo txt que está estructurado como el archivo de
+    dias no laborables de HOST SYS2.IOA.CAL(FERIADOS). Tiene la siguiente forma:
+
+    ...
+    Y2022LOS FERIADOS DEL AñO TAMBIEN SABADOS Y DOMINGOS
+    M01YY     YY     YY     YY     YY
+    M02    YY     YY     YY     YYY
+    M03Y   YY     YY     YY   Y YY
+    M04 YY     YY   YYYY     YY     Y
+    ...
+    Y2023LOS FERIADOS DEL AñO TAMBIEN SABADOS Y DOMINGOS
+    M01Y     YY     YY     YY     YY
+    M02   YY     YY     YYYY   YY
+    M03   YY     YY     YY    YYY
+    M04YY   YYYY     YY     YY     YY
+    ...
+    """
+
+    feriados = []
+    with open(ruta_txt_nonchambahost, 'r', encoding='utf-8') as f:
+
+        for line in f:
+
+            if line.startswith('Y'):
+                anio = line[1:5]
+            elif line.startswith('M'):
+                mes = line[1:3]
+                indices = [i for i, s in enumerate(line) if 'Y' in s]
+                if indices:
+                    for indice in indices:
+                        feriados.append({'fecha': f'{anio}-{mes}-{str(indice - 2).zfill(2)}'})
+
+    return feriados
+
+
 class Secuencia:
     """
     Clase generadora de identificador único de jobname, genera caracteres del 000 al 999 y luego de A00 a Z99
