@@ -84,7 +84,7 @@ class ControlmFolder:
                 self.name = self._base.get(TagXml.NOMBRE_MALLA)
             except (ParseError, AttributeError) as error_xml:
                 mensaje = f"Archivo xml [{xml_input}] corrupto o mal formado. Revisar que posea el formato correcto de xml y respete la estructura de malla exportada de Control-m"
-                raise Exception(mensaje) from error_xml
+                raise ParseError(mensaje) from error_xml
 
         elif isinstance(xml_input, Element):
             try:

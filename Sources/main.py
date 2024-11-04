@@ -44,6 +44,7 @@ import random
 import os
 import xml.etree.ElementTree as ET
 from tkinter.ttk import Radiobutton
+from xml.etree.ElementTree import ParseError
 
 import requests
 import re
@@ -164,27 +165,34 @@ def modificar_malla(filename, mail_personal, start_date, end_date, selected_jobs
 
 def select_attached_file():
     global attached_file_path, jobs, malla
+
+
     attached_file_path = filedialog.askopenfilename(title="Selecciona una malla XML",
                                                     filetypes=[("XML files", "*.xml")])
+    job_listbox.delete(0, tk.END)
+    selected_jobs_listbox.delete(0, tk.END)
+    if not attached_file_path:
+        messagebox.showinfo("Fallo", "No se selecciono archivo XML.")
 
-    try:
+    else:
+        try:
 
-        malla = ControlmFolder(attached_file_path)
+            malla = ControlmFolder(attached_file_path)
 
-        # Limpia las listas si ya estaban cargada previamentes
-        job_listbox.delete(0, tk.END)
-        selected_jobs_listbox.delete(0, tk.END)
-        selected_jobs_global.clear()
+            selected_jobs_global.clear()
 
-        job_names_from_xml = malla.jobnames()
+            job_names_from_xml = malla.jobnames()
 
-        for job_name in job_names_from_xml:
-            job_listbox.insert(tk.END, job_name)
+            for job_name in job_names_from_xml:
+                job_listbox.insert(tk.END, job_name)
 
-        messagebox.showinfo("Éxito", "Archivo adjunto cargado correctamente.")
+            messagebox.showinfo("Éxito", "Archivo adjunto cargado correctamente.")
 
-    except:
-        messagebox.showinfo("Fallo", "Archivo adjunto no se cargo.")
+
+        except ParseError:
+            messagebox.showinfo("Fallo", "Error al cargar archivo. Asegurese de que el archivo sea un XML exportado de ControlM.")
+
+
 
 def confirmar_seleccion():
 
