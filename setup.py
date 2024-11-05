@@ -10,7 +10,8 @@ buildOptions = {
         ('Sources/imagen/bbva.ico', 'Sources/imagen/bbva.ico'),
         ('Sources/imagen/logo.png', 'Sources/imagen/logo.png'),
         ('Sources/imagen/logo_2.png', 'Sources/imagen/logo_2.png'),
-        ('Sources/imagen/im_bbva.png', 'Sources/imagen/im_bbva.png')
+        ('Sources/imagen/im_bbva.png', 'Sources/imagen/im_bbva.png'),
+        ('Sources/fechas_nolaborables.json', 'Sources/fechas_nolaborables.json')
     ]
 }
 

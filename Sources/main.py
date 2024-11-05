@@ -36,7 +36,7 @@ Future Improvements:
     - Soporte para carga y exportación de archivos en diferentes formatos.
     - Mejorar la visualización y gestión de trabajos.
 """
-
+import json
 import sys
 import traceback
 import logging
@@ -59,8 +59,8 @@ from PIL import Image, ImageTk
 from controlm.structures import MallaMaxi
 
 
-api_url = f'https://api.argentinadatos.com/v1/feriados/'
-api_reli = f'https://myapi-wine.vercel.app/'
+api_url = f'https://myapi-wine.vercel.app/'
+fechas_json = os.path.join('Sources','fechas_nolaborables.json')
 
 fechas_seleccionadas = []
 selected_jobs_global = set()
@@ -100,22 +100,23 @@ def es_fecha_valida(fecha):
     non_chamba_days = []
     for anio in anios_seleccionados:
         try:
-            response = requests.get(api_url + anio + '/', verify=False)
-            reponse_2 = requests.get(api_reli, verify=False)
-            reponse_2.raise_for_status()
+            response = requests.get(api_url, verify=False)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logging.error("No se pudo conectar con la API de feriados: %s", e)
+            with open(fechas_json, 'r') as f:
+                feriados_data = json.load(f)
+                non_chamba_days.extend([feriado['fecha'] for feriado in feriados_data])
         else:
             feriados_data = response.json()
-            feriado_data_old = reponse_2.json()
             non_chamba_days.extend([feriado['fecha'] for feriado in feriados_data])
-            non_chamba_days.extend([feriados['fecha'] for feriados in feriado_data_old])
         finally:
             # Dia del bancario
             non_chamba_days.append(f'{anio}-11-06')
             non_chamba_days.append(f'{anio}-12-24')
             non_chamba_days.append(f'{anio}-12-31')
+
+
 
     fechas_a_generar_jobs = []
     for f in fecha:
@@ -387,10 +388,10 @@ def interfaz_seleccion_job():
 
     check_force = Checkbutton(dias_jobs_frame, text="FORCE ORDER JOB", variable=var_force,
                              font=("Arial", 10), bg="#131c46", fg="white")
-    check_force.grid(row=0, column=2, columnspan=1, pady=(0, 100), padx=(46, 0))
+    check_force.grid(row=0, column=2, columnspan=1, pady=(0, 100), padx=(35, 0))
 
     check_button = Checkbutton(dias_jobs_frame, text="SELECCIONAR TODOS", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 10),bg="#131c46", fg="white")
-    check_button.grid(row=0, column=2, columnspan=1, pady=(0,50),padx=(56,0))
+    check_button.grid(row=0, column=2, columnspan=1, pady=(0,50),padx=(50,0))
 
 
     entry_buscar = tk.Entry(dias_jobs_frame, font=("Arial", 14), fg='grey',width=42)
