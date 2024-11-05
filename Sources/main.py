@@ -60,6 +60,7 @@ from controlm.structures import MallaMaxi
 
 
 api_url = f'https://api.argentinadatos.com/v1/feriados/'
+api_reli = f'https://myapi-wine.vercel.app/'
 
 fechas_seleccionadas = []
 selected_jobs_global = set()
@@ -100,12 +101,16 @@ def es_fecha_valida(fecha):
     for anio in anios_seleccionados:
         try:
             response = requests.get(api_url + anio + '/', verify=False)
+            reponse_2 = requests.get(api_reli, verify=False)
+            reponse_2.raise_for_status()
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logging.error("No se pudo conectar con la API de feriados: %s", e)
         else:
             feriados_data = response.json()
+            feriado_data_old = reponse_2.json()
             non_chamba_days.extend([feriado['fecha'] for feriado in feriados_data])
+            non_chamba_days.extend([feriados['fecha'] for feriados in feriado_data_old])
         finally:
             # Dia del bancario
             non_chamba_days.append(f'{anio}-11-06')
