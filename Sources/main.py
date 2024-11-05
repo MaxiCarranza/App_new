@@ -389,7 +389,7 @@ def interfaz_seleccion_job():
                              font=("Arial", 10), bg="#131c46", fg="white")
     check_force.grid(row=0, column=2, columnspan=1, pady=(0, 100), padx=(46, 0))
 
-    check_button = Checkbutton(dias_jobs_frame, text="SELECIONAR TODOS", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 10),bg="#131c46", fg="white")
+    check_button = Checkbutton(dias_jobs_frame, text="SELECCIONAR TODOS", variable=var_seleccion, command=seleccionar_todos,font=("Arial", 10),bg="#131c46", fg="white")
     check_button.grid(row=0, column=2, columnspan=1, pady=(0,50),padx=(56,0))
 
 
