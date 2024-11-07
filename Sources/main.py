@@ -544,6 +544,13 @@ def main():
     image_label.grid(row=0, column=0,columnspan=2, sticky="nw", padx=10, pady=10)
     image_label.image = photo
 
+    labe_1_down = tk.Label(dias_jobs_frame, text="1) SUBIR MALLA DE REFERENCIA", font=("Arial", 12, "bold"),
+                           bg="#131c46", fg="#2176EA")
+    labe_1_down.grid(row=0, column=1, pady=(0, 100), padx=(0,10))
+
+    labe_2_down =  tk.Label(dias_jobs_frame, text="2) SELECCIONAR FECHAS A CARGAR",font=("Arial", 12, "bold"), bg="#131c46",fg="#2176EA")
+    labe_2_down.grid(row=3, column=1, padx=(20,0), pady=2)
+
     reli_label_xd = tk.Label(dias_jobs_frame, text="By Reliability Argentina",font=("Arial", 12, "bold"), bg="#131c46",fg="White")
     reli_label_xd.grid(row=9, column=2, columnspan=4, sticky="se", padx=5, pady=2)
 
