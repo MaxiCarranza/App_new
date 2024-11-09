@@ -1152,11 +1152,25 @@ class MallaMaxi:
 
             job.atributos['DESCRIPTION'] += f'. Creado automáticamente por generador de mallas temporales {caso_d_uso}'
 
+            job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
+            job.atributos.pop('DAYSCAL', None)
+            job.atributos.pop('DAYS', None)
+            job.atributos['MAXWAIT'] = '0'
+            job.atributos['PARENT_FOLDER'] = folder_name
+            job.recursos_cuantitativos = [
+                ControlmRecursoCuantitativo(name='ARD'),
+                ControlmRecursoCuantitativo(name='ARD-TMP')
+            ]
+            job.atributos['CREATED_BY'] = legajo
+
             for name, value in job.variables.items():
                 if '%%$ODATE' in value:
                     job.variables[name] = value.replace('%%$ODATE', job.odate)
                 elif '%%MAIL' in value:
-                    job.variables[name] = value.replace('%%MAIL', mail)
+                    try:
+                        job.variables[name] = value.replace('%%MAIL', mail)
+                    except:
+                        job.variables[name] = value.replace(value,mail)
                 elif '.dev' in value:
                     job.variables[name] = value.replace('.dev', '.pro')
 
@@ -1224,17 +1238,6 @@ class MallaMaxi:
                         }
                     )
                 )
-
-            job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
-            job.atributos.pop('DAYSCAL', None)
-            job.atributos.pop('DAYS', None)
-            job.atributos['MAXWAIT'] = '0'
-            job.atributos['PARENT_FOLDER'] = folder_name
-            job.recursos_cuantitativos = [
-                ControlmRecursoCuantitativo(name='ARD'),
-                ControlmRecursoCuantitativo(name='ARD-TMP')
-            ]
-            job.atributos['CREATED_BY'] = legajo
 
     def exportar(self, save_path: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""

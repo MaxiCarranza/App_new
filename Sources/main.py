@@ -572,7 +572,7 @@ def main():
     fecha_op1.grid(row=5, column=1, padx=(20,0), pady=2)
 
     fecha_op2 = tk.Radiobutton(dias_jobs_frame, text="  Días hábiles  ", variable=seleccion_var, value="dias_habiles",
-                               font=("Arial", 12, "bold"), bg="#131c46", fg="white", width=25, anchor="w",
+                               font=("Arial", 12, "bold"), bg="#131c46", fg="#00b89f", width=25, anchor="w",
                                justify="left",
                                command=actualizar_estado_entradas)
     fecha_op2.grid(row=6, column=1, padx=(20,0), pady=2)
