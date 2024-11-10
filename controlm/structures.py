@@ -1319,8 +1319,7 @@ class InterfazApp(QMainWindow):
         grid_layout.setColumnStretch(5, 1)
 
         # Cargar y añadir la imagen de fondo (BBVA)
-        image = QPixmap(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen", "im_bbva.png")).scaled(110, 40, Qt.AspectRatioMode.KeepAspectRatio,
-                                           Qt.TransformationMode.SmoothTransformation)
+        image = QPixmap(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen", "im_bbva.png")).scaled(110, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label = QLabel(frame)
         image_label.setPixmap(image)
         image_label.setStyleSheet("background-color: #131c46;")
