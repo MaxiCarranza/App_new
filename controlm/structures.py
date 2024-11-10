@@ -7,6 +7,7 @@ from __future__ import annotations
 import itertools
 import os
 import re
+from tkinter import BooleanVar
 
 from typing import Literal
 from copy import deepcopy
@@ -83,7 +84,7 @@ class ControlmFolder:
                 self.name = self._base.get(TagXml.NOMBRE_MALLA)
             except (ParseError, AttributeError) as error_xml:
                 mensaje = f"Archivo xml [{xml_input}] corrupto o mal formado. Revisar que posea el formato correcto de xml y respete la estructura de malla exportada de Control-m"
-                raise Exception(mensaje) from error_xml
+                raise ParseError(mensaje) from error_xml
 
         elif isinstance(xml_input, Element):
             try:
@@ -1137,17 +1138,12 @@ class MallaMaxi:
         self._ambientar_marcas(cadena_temporal)
         self.cadena_completa_temporal = cadena_temporal
 
-    def ambientar(self, mail: str, folder_name: str, caso_d_uso: str, legajo: str):
+    def ambientar(self, mail: str, folder_name: str, caso_d_uso: str, legajo: str, configurar_con_force: bool):
         """
         Ambienta los jobs a malla.
         """
 
         self._folder_name_exp = folder_name
-
-        if len(self.cadena_completa_temporal) >= Limits.MAX_JOBS_TMP:
-            configurar_con_force = True
-        else:
-            configurar_con_force = False
 
         # Cambio el valor %%ODATE por fecha seleccionada, en cada job de la cadena
         for job in self.cadena_completa_temporal:
@@ -1156,11 +1152,25 @@ class MallaMaxi:
 
             job.atributos['DESCRIPTION'] += f'. Creado automáticamente por generador de mallas temporales {caso_d_uso}'
 
+            job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
+            job.atributos.pop('DAYSCAL', None)
+            job.atributos.pop('DAYS', None)
+            job.atributos['MAXWAIT'] = '0'
+            job.atributos['PARENT_FOLDER'] = folder_name
+            job.recursos_cuantitativos = [
+                ControlmRecursoCuantitativo(name='ARD'),
+                ControlmRecursoCuantitativo(name='ARD-TMP')
+            ]
+            job.atributos['CREATED_BY'] = legajo
+
             for name, value in job.variables.items():
                 if '%%$ODATE' in value:
                     job.variables[name] = value.replace('%%$ODATE', job.odate)
                 elif '%%MAIL' in value:
-                    job.variables[name] = value.replace('%%MAIL', mail)
+                    try:
+                        job.variables[name] = value.replace('%%MAIL', mail)
+                    except:
+                        job.variables[name] = value.replace(value,mail)
                 elif '.dev' in value:
                     job.variables[name] = value.replace('.dev', '.pro')
 
@@ -1228,17 +1238,6 @@ class MallaMaxi:
                         }
                     )
                 )
-
-            job.atributos['SUB_APPLICATION'] = 'DATIO-AR-P'
-            job.atributos.pop('DAYSCAL', None)
-            job.atributos.pop('DAYS', None)
-            job.atributos['MAXWAIT'] = '0'
-            job.atributos['PARENT_FOLDER'] = folder_name
-            job.recursos_cuantitativos = [
-                ControlmRecursoCuantitativo(name='ARD'),
-                ControlmRecursoCuantitativo(name='ARD-TMP')
-            ]
-            job.atributos['CREATED_BY'] = legajo
 
     def exportar(self, save_path: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
