@@ -1299,41 +1299,39 @@ class InterfazApp(QMainWindow):
         self.setGeometry(100, 100, 1000, 700)
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen","bbva.ico")))
 
-        # Marco principal
+        # Marco principal (Color de borde ventana)
         central_widget = QFrame(self)
         central_widget.setStyleSheet("background-color: #131c46;")
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
 
-        # Crear el frame para los contenidos
-        marcobg = QFrame(central_widget)
-        marcobg.setStyleSheet("background-color: #131c46; padding: 8px;")
-        main_layout.addWidget(marcobg)
+        # Crear el frame para los contenidos (Color del frame)
+        frame = QFrame(central_widget)
+        frame.setStyleSheet("background-color: #131c46; padding: 8px;")
+        main_layout.addWidget(frame)
 
         # Configurar el layout de grid
-        grid_layout = QGridLayout(marcobg)
+        grid_layout = QGridLayout(frame)
         grid_layout.setRowStretch(0, 1)
         grid_layout.setRowStretch(9, 1)
         grid_layout.setColumnStretch(0, 1)
         grid_layout.setColumnStretch(5, 1)
 
-        # Cargar y añadir la imagen de fondo
+        # Cargar y añadir la imagen de fondo (BBVA)
         image = QPixmap(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen", "im_bbva.png")).scaled(110, 40, Qt.AspectRatioMode.KeepAspectRatio,
                                            Qt.TransformationMode.SmoothTransformation)
-        if image.isNull():
-            print("Error: La imagen no se pudo cargar.")
-        image_label = QLabel(marcobg)
+        image_label = QLabel(frame)
         image_label.setPixmap(image)
         image_label.setStyleSheet("background-color: #131c46;")
         grid_layout.addWidget(image_label, 0, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         # Etiqueta de pie de página
-        reli_label = QLabel("By Reliability Argentina", marcobg)
+        reli_label = QLabel("By Reliability Argentina", frame)
         reli_label.setStyleSheet("color: white; font: bold 12px Arial;")
         grid_layout.addWidget(reli_label, 9, 2, 1, 4, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
 
-        dudas_label = QLabel("Dudas: ar-data-hub-solutions.group@bbva.com", marcobg)
+        dudas_label = QLabel("Dudas: ar-data-hub-solutions.group@bbva.com", frame)
         dudas_label.setStyleSheet("color: white; font: bold 12px Arial;")
         grid_layout.addWidget(dudas_label, 10, 2, 1, 4, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
 
