@@ -2,3 +2,4 @@ tkcalendar
 requests
 cx_Freeze
 pillow
+PySide6

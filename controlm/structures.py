@@ -4,10 +4,9 @@ Modulo que contiene todas las clases correspondientes a elementos notables de co
 
 from __future__ import annotations
 
-import itertools
+import sys
 import os
 import re
-from tkinter import BooleanVar
 
 from typing import Literal
 from copy import deepcopy
@@ -16,6 +15,9 @@ from xml.etree.ElementTree import ParseError
 from xml.etree.ElementTree import parse
 
 import controlm.utils as utils
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QPixmap, QIcon
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QFrame, QVBoxLayout, QGridLayout
 from controlm.constantes import Regex
 from controlm.constantes import TagXml
 from controlm.constantes import Limits
@@ -1290,52 +1292,56 @@ class MallaMaxi:
         tree.write(os.path.join(save_path), encoding='utf-8', xml_declaration=True)
 
 
+class InterfazApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Generador de Mallas Temporales - BBVA")
+        self.setGeometry(100, 100, 1000, 700)
+        self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen","bbva.ico")))
+
+        # Marco principal
+        central_widget = QFrame(self)
+        central_widget.setStyleSheet("background-color: #131c46;")
+        self.setCentralWidget(central_widget)
+
+        main_layout = QVBoxLayout(central_widget)
+
+        # Crear el frame para los contenidos
+        marcobg = QFrame(central_widget)
+        marcobg.setStyleSheet("background-color: #131c46; padding: 8px;")
+        main_layout.addWidget(marcobg)
+
+        # Configurar el layout de grid
+        grid_layout = QGridLayout(marcobg)
+        grid_layout.setRowStretch(0, 1)
+        grid_layout.setRowStretch(9, 1)
+        grid_layout.setColumnStretch(0, 1)
+        grid_layout.setColumnStretch(5, 1)
+
+        # Cargar y añadir la imagen de fondo
+        image = QPixmap(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen", "im_bbva.png")).scaled(110, 40, Qt.AspectRatioMode.KeepAspectRatio,
+                                           Qt.TransformationMode.SmoothTransformation)
+        if image.isNull():
+            print("Error: La imagen no se pudo cargar.")
+        image_label = QLabel(marcobg)
+        image_label.setPixmap(image)
+        image_label.setStyleSheet("background-color: #131c46;")
+        grid_layout.addWidget(image_label, 0, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+
+        # Etiqueta de pie de página
+        reli_label = QLabel("By Reliability Argentina", marcobg)
+        reli_label.setStyleSheet("color: white; font: bold 12px Arial;")
+        grid_layout.addWidget(reli_label, 9, 2, 1, 4, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+
+        dudas_label = QLabel("Dudas: ar-data-hub-solutions.group@bbva.com", marcobg)
+        dudas_label.setStyleSheet("color: white; font: bold 12px Arial;")
+        grid_layout.addWidget(dudas_label, 10, 2, 1, 4, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+
+
 if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = InterfazApp()
+    window.show()
+    sys.exit(app.exec())
 
-    # Script para testear
-    import datetime
-    import os
 
-    malla_test = ControlmFolder('C:\\Users\\Gaston\\PycharmProjects\\App_new\\CR-ARMOLTMP-T38.xml')
-    # jobs = [job for job in malla.jobs() if job.name in ['AMOLCP0010', 'AMOLPP0004', 'AMOLSP0105', 'AMOLCP0012', 'AMOLVP0186']]
-    jobs = [job for job in malla_test.jobs() if job.name in ["AMOLCP9000",
-                                                             "AMOLCP9001",
-                                                             "AMOLCP9002",
-                                                             "AMOLCP9003",
-                                                             "AMOLCP9004",
-                                                             "AMOLCP9005",
-                                                             "AMOLCP9006",
-                                                             "AMOLCP9007",
-                                                             "AMOLCP9008",
-                                                             "AMOLCP9009",
-                                                             "AMOLCP9010",
-                                                             "AMOLCP9011",
-                                                             "AMOLCP9012",
-                                                             "AMOLCP9013",
-                                                             "AMOLCP9014",
-                                                             "AMOLCP9015",
-                                                             "AMOLCP9016",
-                                                             "AMOLCP9017",
-                                                             "AMOLCP9018",
-                                                             "AMOLCP9019",
-                                                             "AMOLCP9020",
-                                                             "AMOLCP9021"
-                                                             ]
-            ]
-
-    m_max = MallaMaxi(jobs, malla_test)
-    m_max.ordenar()
-
-    fechas_a_iterar = [
-        datetime.datetime.now(),
-        datetime.datetime(2024, 10, 14),
-        datetime.datetime(2024, 10, 15),
-        datetime.datetime(2024, 10, 16),
-        datetime.datetime(2024, 10, 17),
-        datetime.datetime(2024, 10, 20),
-    ]
-
-    m_max.replicar_y_enlazar(fechas_a_iterar)
-    m_max.ambientar('jemonjelos@bbva.com', 'CR-ARMOLTMP-T99', 'caso_test', 'O00000')
-
-    m_max.exportar(os.getcwd())
