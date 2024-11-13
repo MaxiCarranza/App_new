@@ -7,20 +7,27 @@ from __future__ import annotations
 import sys
 import os
 import re
+import xml.etree.ElementTree as ET
 
+from datetime import datetime
 from typing import Literal
 from copy import deepcopy
+from pathlib import Path
 from xml.etree.ElementTree import Element
 from xml.etree.ElementTree import ParseError
 from xml.etree.ElementTree import parse
 
 import controlm.utils as utils
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QPixmap, QIcon
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QFrame, QVBoxLayout, QGridLayout
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap, QIcon, QPalette, QColor
+from PySide6.QtWidgets import (QApplication, QMainWindow, QLabel, QFrame, QVBoxLayout, QGridLayout, QPushButton,
+                               QFileDialog, QMessageBox, QTextEdit, QWidget)
+
+from controlm import validaciones
 from controlm.constantes import Regex
 from controlm.constantes import TagXml
 from controlm.constantes import Limits
+from controlm.record import ControlRecorder
 
 
 class ControlmContainer:
@@ -1171,8 +1178,8 @@ class MallaMaxi:
                 elif '%%MAIL' in value:
                     try:
                         job.variables[name] = value.replace('%%MAIL', mail)
-                    except:
-                        job.variables[name] = value.replace(value,mail)
+                    except KeyError:
+                        job.variables[name] = value.replace(value, mail)
                 elif '.dev' in value:
                     job.variables[name] = value.replace('.dev', '.pro')
 
@@ -1243,9 +1250,6 @@ class MallaMaxi:
 
     def exportar(self, save_path: str):
         """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
-
-        import xml.etree.ElementTree as ET  # TODO: Qué hace esto acá ?
-
         root = ET.Element("DEFTABLE")
         root.attrib['xmlns:xsi'] = "http://www.w3.org/2001/XMLSchema-instance"
 
@@ -1293,51 +1297,148 @@ class MallaMaxi:
 
 
 class InterfazApp(QMainWindow):
+
     def __init__(self):
         super().__init__()
+
         self.setWindowTitle("Generador de Mallas Temporales - BBVA")
-        self.setGeometry(100, 100, 1000, 700)
-        self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen","bbva.ico")))
-
-        # Marco principal (Color de borde ventana)
-        central_widget = QFrame(self)
-        central_widget.setStyleSheet("background-color: #131c46;")
-        self.setCentralWidget(central_widget)
-
-        main_layout = QVBoxLayout(central_widget)
-
-        # Crear el frame para los contenidos (Color del frame)
-        frame = QFrame(central_widget)
-        frame.setStyleSheet("background-color: #131c46; padding: 8px;")
-        main_layout.addWidget(frame)
+        self.setMinimumSize(800, 600)
+        self.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen", "bbva.ico")))
+        self.setStyleSheet("background-color: #131c46;")
 
         # Configurar el layout de grid
-        grid_layout = QGridLayout(frame)
-        grid_layout.setRowStretch(0, 1)
-        grid_layout.setRowStretch(9, 1)
-        grid_layout.setColumnStretch(0, 1)
-        grid_layout.setColumnStretch(5, 1)
+        self.grid_layout = QGridLayout()
+        self.grid_layout.setRowStretch(8, 1)
 
         # Cargar y añadir la imagen de fondo (BBVA)
-        image = QPixmap(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen", "im_bbva.png")).scaled(110, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        image_label = QLabel(frame)
+        image = QPixmap(os.path.join(os.path.dirname(__file__), "..", "Sources", "imagen", "im_bbva.png")).scaled(110, 40, Qt.AspectRatioMode.KeepAspectRatio)
+        image_label = QLabel()
         image_label.setPixmap(image)
-        image_label.setStyleSheet("background-color: #131c46;")
-        grid_layout.addWidget(image_label, 0, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+
+        self.grid_layout.addWidget(image_label, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # Etiqueta de pie de página
-        reli_label = QLabel("By Reliability Argentina", frame)
-        reli_label.setStyleSheet("color: white; font: bold 12px Arial;")
-        grid_layout.addWidget(reli_label, 9, 2, 1, 4, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        reli_label = QLabel("By Reliability Argentina")
+        reli_label.setStyleSheet("color: white; font: bold 18px Arial;")
+        self.grid_layout.addWidget(reli_label, 8, 9, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
 
-        dudas_label = QLabel("Dudas: ar-data-hub-solutions.group@bbva.com", frame)
-        dudas_label.setStyleSheet("color: white; font: bold 12px Arial;")
-        grid_layout.addWidget(dudas_label, 10, 2, 1, 4, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        dudas_label = QLabel("Dudas: ar-data-hub-solutions.group@bbva.com")
+        dudas_label.setStyleSheet("color: white; font: 12px Arial;")
+        self.grid_layout.addWidget(dudas_label, 9, 9, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+
+        widget = QWidget(self)
+        widget.setLayout(self.grid_layout)
+        self.setCentralWidget(widget)
+
+
+class InterfazValidador(InterfazApp):
+
+    def __init__(self):
+        super().__init__()
+
+        self.folder_path = None
+
+        self.setWindowTitle("Validador de mallas - BBVA")
+
+        # Etiqueta de pie de página
+        title_label = QLabel("VALIDADOR DE MALLAS")
+        title_label.setStyleSheet("color: white; font: bold 12px Arial;")
+        self.grid_layout.addWidget(title_label, 0, 4, 1, 2, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.folder_label = QLabel("Malla adjuntada: ")
+        self.folder_label.setStyleSheet("color: black; font: bold 12px Arial; background:white")
+        self.grid_layout.addWidget(self.folder_label, 1, 4)
+
+        attachment_button = QPushButton("ADJUNTAR MALLA")
+        attachment_button.setStyleSheet("color: black; font: bold 12px Arial; background:white")
+        attachment_button.clicked.connect(self.add_attachment)
+        self.grid_layout.addWidget(attachment_button, 1, 5)
+
+        validate_button = QPushButton("VALIDAR MALLA")
+        validate_button.setStyleSheet("color: black; font: bold 12px Arial; background:white")
+        validate_button.clicked.connect(self.validate)
+        self.grid_layout.addWidget(validate_button, 2, 4, 1, 2, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        title_label = QLabel("Detalles de validacion: ")
+        title_label.setStyleSheet("color: black; font: bold 12px Arial; background:white")
+        self.grid_layout.addWidget(title_label, 3, 4)
+
+        self.validation_textbox = QTextEdit()
+        self.validation_textbox.setReadOnly(True)
+        self.validation_textbox.setText('Seleccione una malla para validar')
+        self.validation_textbox.setStyleSheet("font-size: 16px; color: #333333;background-color: #F0F8FF; padding: 10px; border: 2px solid #4682B4; border-radius: 5px;")
+        self.grid_layout.addWidget(self.validation_textbox, 4, 4, 1, 2)
+
+        download_button = QPushButton("DESCARGAR DETALLES")
+        download_button.setStyleSheet("color: black; font: bold 12px Arial; background:white")
+        download_button.clicked.connect(self.download_log)
+        self.grid_layout.addWidget(download_button, 5, 4, 1, 2, alignment=Qt.AlignmentFlag.AlignRight)
+
+    def add_attachment(self):
+        file_path = QFileDialog.getOpenFileName(self, self.tr("Open Image"), os.getcwd(), self.tr("XML Files (*.xml)"))[0]
+        if file_path:
+            self.folder_label.setText(Path(file_path).name)
+        self.folder_path = file_path
+
+    def validate(self):
+        if not self.folder_path:
+            msg_box = QMessageBox()
+            msg_box.setText("No se encuentra una malla adjuntada")
+            msg_box.exec()
+            return
+
+        self.control_record = ControlRecorder()
+
+        malla = ControlmFolder(xml_input=self.folder_path)
+
+        for work_job in malla.jobs():
+            try:
+                validaciones.jobname(work_job, malla, self.control_record)
+                validaciones.application(work_job, malla, self.control_record)
+                validaciones.subapp(work_job, malla, self.control_record)
+                validaciones.atributos(work_job, malla, self.control_record)
+                validaciones.variables(work_job, malla, self.control_record)
+                validaciones.marcas_in(work_job, malla, self.control_record)
+                validaciones.marcas_out(work_job, malla, self.control_record)
+                validaciones.acciones(work_job, malla, self.control_record)
+                validaciones.tipo(work_job, malla, self.control_record)
+                validaciones.recursos_cuantitativos(work_job, malla, self.control_record)
+            except Exception as control_error:
+                # TODO: Lanzar cuadro de error
+                msg = f"Ocurrió un error inesperado al realizar controles sobre el job [{work_job.name}] contactar a Tongas"
+                raise Exception(msg) from control_error
+
+        # La validación de cadenas es un control a nivel malla, no es puntual con los jobs, lo podemos dejar acá
+        try:
+            validaciones.cadenas_malla(malla, self.control_record)
+        except Exception as error_cadenas:
+            msg = f"Ocurrió un error inesperado al analizar las cadenas de la malla"
+            raise Exception(msg) from error_cadenas
+
+        informacion_extra_recorders = {
+            'jobnames_nuevos': [],
+            'jobnames_modificados': [],
+            'jobnames_ruta_critica': [job.name for job in malla.jobs() if job.es_ruta_critica()]
+        }
+
+        self.control_record.add_inicial(f"Fecha de generación [{datetime.now()}]")
+        self.control_record.add_inicial(f"Malla analizada [{malla.name}]")
+        self.control_record.add_inicial(f"UUAA: {malla.uuaa}")
+        self.control_record.add_inicial(f"Periodicidad: {malla.periodicidad}")
+        self.control_record.add_inicial(
+            f"Cantidad jobs {malla.name}: {len(malla.jobs())}")
+        self.control_record.add_inicial('-' * 70)
+
+        msg_box = self.control_record.generate_log(informacion_extra_recorders)
+        self.validation_textbox.setText(msg_box)
+
+    def download_log(self):
+        self.control_record.write_log(f'CONTROLES_test.log', {})  # TODO: remover
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = InterfazApp()
+    window = InterfazValidador()
     window.show()
     sys.exit(app.exec())
 

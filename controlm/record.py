@@ -217,6 +217,53 @@ class ControlRecorder(Recorder):
             if len(self.info) == 0:
                 file.write("No se detectaron errores\n")
 
+    def generate_log(self, info_extra: dict):
+        """
+        """
+
+        nuevos = info_extra['jobnames_nuevos']
+        modificados = info_extra['jobnames_modificados']
+        rc = info_extra['jobnames_ruta_critica']
+
+        final_str = ""
+
+        # Escribimos los items iniciales
+        items_iniciales = self.info.pop('INICIAL')
+        for item in items_iniciales:
+            final_str += item
+
+        # Escribimos los items generales, si los hay
+        items_generales = self.info.pop('GENERAL')
+        if len(items_generales) > 0:
+            final_str += f"\nGENERAL\n"
+            for item in items_generales:
+                final_str += item
+
+        value: str | list
+        for key, value in self.info.items():
+            nuevo_str = " (NUEVO)" if key in nuevos else ""
+            modif_str = " (MODIFICADO)" if key in modificados else ""
+            rc_str = " - (RUTA CRITICA)" if key in rc else ""
+            final_str += f"\n{key}{nuevo_str}{modif_str}{rc_str}\n"
+            if isinstance(value, list):
+                for v in value:
+                    final_str += v
+            else:
+                final_str += value
+
+        # Los listados generales van al final
+        for listado_general in self.listados_generales.values():
+            if listado_general[1]:  # Si hay items en la lista
+                final_str += f"\n{listado_general[0]}\n"
+                for item in listado_general[1]:
+                    final_str += f"\t\t{item}\n"
+                final_str += '\n'
+
+        if len(self.info) == 0:
+            final_str += "No se detectaron errores\n"
+
+        return final_str
+
 
 class RecorderTmp:
     """
