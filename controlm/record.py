@@ -176,9 +176,9 @@ class ControlRecorder(Recorder):
         los de RC
         """
 
-        nuevos = info_extra['jobnames_nuevos']
-        modificados = info_extra['jobnames_modificados']
-        rc = info_extra['jobnames_ruta_critica']
+        nuevos = info_extra.get('jobnames_nuevos', '')
+        modificados = info_extra.get('jobnames_modificados', '')
+        rc = info_extra.get('jobnames_ruta_critica', '')
 
         with open(filename, 'w', encoding='UTF-8') as file:
 
@@ -188,11 +188,15 @@ class ControlRecorder(Recorder):
                 file.write(item)
 
             # Escribimos los items generales, si los hay
-            items_generales = self.info.pop('GENERAL')
-            if len(items_generales) > 0:
-                file.write(f"\nGENERAL\n")
-                for item in items_generales:
-                    file.write(item)
+            try:
+                items_generales = self.info.pop('GENERAL')
+            except KeyError:
+                pass
+            else:
+                if len(items_generales) > 0:
+                    file.write(f"\nGENERAL\n")
+                    for item in items_generales:
+                        file.write(item)
 
             value: str | list
             for key, value in self.info.items():
@@ -221,16 +225,16 @@ class ControlRecorder(Recorder):
         """
         """
 
-        nuevos = info_extra['jobnames_nuevos']
-        modificados = info_extra['jobnames_modificados']
-        rc = info_extra['jobnames_ruta_critica']
+        nuevos = info_extra.get('jobnames_nuevos', '')
+        modificados = info_extra.get('jobnames_modificados', '')
+        rc = info_extra.get('jobnames_ruta_critica', '')
 
         final_str = ""
 
-        # Escribimos los items iniciales
-        items_iniciales = self.info.pop('INICIAL')
-        for item in items_iniciales:
-            final_str += item
+        # # Escribimos los items iniciales
+        # items_iniciales = self.info.pop('INICIAL')
+        # for item in items_iniciales:
+        #     final_str += item
 
         # Escribimos los items generales, si los hay
         items_generales = self.info.pop('GENERAL')

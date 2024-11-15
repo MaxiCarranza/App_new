@@ -43,7 +43,6 @@ import logging
 import random
 import os
 import xml.etree.ElementTree as ET
-from tkinter.ttk import Radiobutton
 from xml.etree.ElementTree import ParseError
 
 import requests
@@ -60,7 +59,7 @@ from controlm.structures import MallaMaxi
 
 
 api_url = f'https://myapi-wine.vercel.app/'
-fechas_json = os.path.join('Sources','fechas_nolaborables.json')
+fechas_json = os.path.join('src', 'fechas_nolaborables.json')
 
 fechas_seleccionadas = []
 selected_jobs_global = set()
@@ -73,7 +72,7 @@ def ruta_absoluta(rel_path):
     if hasattr(sys, 'frozen'):
         base_path = os.path.dirname(sys.executable)
     else:
-        base_path = os.path.abspath(".")
+        base_path = os.path.abspath("src")
     return os.path.join(base_path, rel_path)
 
 
@@ -459,7 +458,7 @@ def abrir_calendario():
     fecha_op2.config(fg="white")
     ventana_calendario = tk.Toplevel(dias_jobs_frame)
     ventana_calendario.title("Seleccionar Fechas")
-    icon_path = os.path.join("Sources", "imagen", "bbva.ico")
+    icon_path = os.path.join("src", "imagen", "bbva.ico")
     ventana_calendario.iconbitmap(icon_path)
 
     calendario = Calendar(ventana_calendario, selectmode='day', year=2024, month=9, day=1)
@@ -511,12 +510,12 @@ def main():
 
     root = tk.Tk()
     root.title("Generador de Mallas Temporales - BBVA")
-    icon_path = os.path.join("Sources", "imagen", "bbva.ico")
+    icon_path = os.path.join("src", "imagen", "bbva.ico")
     root.iconbitmap(icon_path)
     root.geometry("1000x700")
     root.resizable(True, True)
 
-    #bg_image = Image.open(os.path.join("Sources", "imagen", "logo_2.png"))
+    #bg_image = Image.open(os.path.join("src", "imagen", "logo_2.png"))
     #bg_image = bg_image.resize((1000, 700), Image.LANCZOS)
     #bg_photo = ImageTk.PhotoImage(bg_image)
     original_jobs = []
@@ -534,7 +533,7 @@ def main():
     fechas_seleccionadas = []
 
     # Cargar la imagen de fondo
-    icon_path = os.path.join("Sources", "imagen", "im_bbva.png")
+    icon_path = os.path.join("src", "imagen", "im_bbva.png")
     image = Image.open(icon_path)
     image = image.resize((110, 40), Image.LANCZOS)
     photo = ImageTk.PhotoImage(image)

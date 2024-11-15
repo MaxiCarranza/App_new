@@ -1,17 +1,17 @@
 from cx_Freeze import setup, Executable
 
 
-executables = [Executable("Sources/main.py", target_name="generador_aut.exe", base="Win32GUI", icon="Sources/imagen/bbva.ico")]
+executables = [Executable("main.py", target_name="generador_aut.exe", base="Win32GUI", icon="src/imagen/bbva.ico")]
 
 buildOptions = {
     'packages': ['tkcalendar', 'collections', 'requests', 'controlm.structures','controlm'],
     'excludes': [],
     'include_files': [
-        ('Sources/imagen/bbva.ico', 'Sources/imagen/bbva.ico'),
-        ('Sources/imagen/logo.png', 'Sources/imagen/logo.png'),
-        ('Sources/imagen/logo_2.png', 'Sources/imagen/logo_2.png'),
-        ('Sources/imagen/im_bbva.png', 'Sources/imagen/im_bbva.png'),
-        ('Sources/fechas_nolaborables.json', 'Sources/fechas_nolaborables.json')
+        ('src/imagen/bbva.ico', 'src/imagen/bbva.ico'),
+        ('src/imagen/logo.png', 'src/imagen/logo.png'),
+        ('src/imagen/logo_2.png', 'src/imagen/logo_2.png'),
+        ('src/imagen/im_bbva.png', 'src/imagen/im_bbva.png'),
+        ('src/fechas_nolaborables.json', 'src/fechas_nolaborables.json')
     ]
 }
 
