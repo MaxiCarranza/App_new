@@ -10,13 +10,20 @@ Aquellas que se deben realizar sobre una malla temporal, se prefijarán con "tem
 
 import csv
 import re
-import controlm.utils as utils
-import controlm.constantes as constantes
+import src.controlm.utils as utils
+import src.controlm.constantes as constantes
 
 from difflib import SequenceMatcher
-from controlm.structures import ControlmJob, ControlmAction, ControlmMarcaOut, ControlmDigrafo, ControlmContainer, ControlmFolder
-from controlm.record import ControlRecorder, RecorderTmp
-from controlm.constantes import Regex
+from src.controlm.structures import (
+    ControlmJob,
+    ControlmAction,
+    ControlmMarcaOut,
+    ControlmDigrafo,
+    ControlmContainer,
+    ControlmFolder
+)
+from src.controlm.record import ControlRecorder, RecorderTmp
+from src.controlm.constantes import Regex
 
 
 def jobname(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):

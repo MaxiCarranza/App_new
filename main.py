@@ -37,7 +37,6 @@ Future Improvements:
     - Mejorar la visualización y gestión de trabajos.
 """
 import json
-import sys
 import traceback
 import logging
 import random
@@ -49,13 +48,13 @@ import requests
 import re
 import tkinter as tk
 
-from controlm.structures import ControlmFolder
+from src.controlm.structures import ControlmFolder
 from tkinter import messagebox, filedialog, Checkbutton, BooleanVar
 from tkcalendar import DateEntry, Calendar
 from datetime import datetime
 from datetime import timedelta
 from PIL import Image, ImageTk
-from controlm.structures import MallaMaxi
+from src.controlm.structures import MallaMaxi
 
 
 api_url = f'https://myapi-wine.vercel.app/'
@@ -66,17 +65,6 @@ selected_jobs_global = set()
 
 REGEX_MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
 REGEX_LEGAJO = r'^[A-Za-z]\d+$'
-
-
-def ruta_absoluta(rel_path):
-    if hasattr(sys, 'frozen'):
-        base_path = os.path.dirname(sys.executable)
-    else:
-        base_path = os.path.abspath("src")
-    return os.path.join(base_path, rel_path)
-
-
-ruta_modelo = ruta_absoluta('model.h5')
 
 
 def generar_dates(start_date: datetime, end_date: datetime):
@@ -114,8 +102,6 @@ def es_fecha_valida(fecha):
             non_chamba_days.append(f'{anio}-11-06')
             non_chamba_days.append(f'{anio}-12-24')
             non_chamba_days.append(f'{anio}-12-31')
-
-
 
     fechas_a_generar_jobs = []
     for f in fecha:
@@ -458,7 +444,7 @@ def abrir_calendario():
     fecha_op2.config(fg="white")
     ventana_calendario = tk.Toplevel(dias_jobs_frame)
     ventana_calendario.title("Seleccionar Fechas")
-    icon_path = os.path.join("src", "imagen", "bbva.ico")
+    icon_path = os.path.join("src", "img", "bbva.ico")
     ventana_calendario.iconbitmap(icon_path)
 
     calendario = Calendar(ventana_calendario, selectmode='day', year=2024, month=9, day=1)
@@ -510,7 +496,7 @@ def main():
 
     root = tk.Tk()
     root.title("Generador de Mallas Temporales - BBVA")
-    icon_path = os.path.join("src", "imagen", "bbva.ico")
+    icon_path = os.path.join("src", "img", "bbva.ico")
     root.iconbitmap(icon_path)
     root.geometry("1000x700")
     root.resizable(True, True)
@@ -533,7 +519,7 @@ def main():
     fechas_seleccionadas = []
 
     # Cargar la imagen de fondo
-    icon_path = os.path.join("src", "imagen", "im_bbva.png")
+    icon_path = os.path.join("src", "img", "im_bbva.png")
     image = Image.open(icon_path)
     image = image.resize((110, 40), Image.LANCZOS)
     photo = ImageTk.PhotoImage(image)

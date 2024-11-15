@@ -14,10 +14,11 @@ from xml.etree.ElementTree import Element
 from xml.etree.ElementTree import ParseError
 from xml.etree.ElementTree import parse
 
-import controlm.utils as utils
-from controlm.constantes import Regex
-from controlm.constantes import TagXml
-from controlm.constantes import Limits
+import src.controlm.utils as utils
+
+from src.controlm.constantes import Regex
+from src.controlm.constantes import TagXml
+from src.controlm.constantes import Limits
 
 
 class ControlmContainer:
