@@ -71,7 +71,7 @@ class InterfazValidador(InterfazApp):
 
         self.folder_label = QLabel("Adjunte una malla", parent=self)
         self.folder_label.setMinimumWidth(300)
-        self.folder_label.setStyleSheet("color: black; font: 15px Arial; background: white; padding-left: 3px;")
+        self.folder_label.setStyleSheet("color: grey; font: 15px Arial; background: white; padding-left: 3px;")
 
         attachment_button = QPushButton("ADJUNTAR MALLA", parent=self)
         attachment_button.setStyleSheet(
@@ -103,6 +103,8 @@ class InterfazValidador(InterfazApp):
 
         spacer_download_relilabel = QSpacerItem(0, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
+        # self.grid_layout.setRowStretch(2, 2)
+
         self.grid_layout.addWidget(title_label, 1, 0, 1, 10, alignment=Qt.AlignmentFlag.AlignCenter)
         self.grid_layout.addWidget(self.folder_label, 2, 0, 1, 5, alignment=Qt.AlignmentFlag.AlignRight)
         self.grid_layout.addWidget(attachment_button, 2, 5, 1, 5, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -112,16 +114,19 @@ class InterfazValidador(InterfazApp):
         self.grid_layout.addWidget(download_button, 6, 9, alignment=Qt.AlignmentFlag.AlignRight)
         self.grid_layout.addItem(spacer_download_relilabel, 7, 9)
 
+    def _alert(self, title: str, message: str):
+        QMessageBox.warning(self)
+
     def add_attachment(self):
         file_path = QFileDialog.getOpenFileName(self, self.tr("Open Image"), os.getcwd(), self.tr("XML Files (*.xml)"))[0]
         if file_path:
             self.folder_label.setText(f"Malla seleccionada: {Path(file_path).name}")
+            self.folder_label.setStyleSheet("color: black; font: 15px Arial; background: white; padding-left: 3px;")
         self.folder_path = file_path
 
     def validate(self):
         if not self.folder_path:
-            msg_box = QMessageBox()
-            msg_box.setText("No se encuentra una malla adjuntada")
+            msg_box = QMessageBox(icon=QMessageBox.Icon.Warning, title="Alerta", text="No se encuentra una malla adjuntada")
             msg_box.exec()
             return
 
@@ -130,26 +135,31 @@ class InterfazValidador(InterfazApp):
         malla = ControlmFolder(xml_input=self.folder_path)
         self.malla_nombre = malla.name
 
-        for work_job in malla.jobs():
+        for job in malla.jobs():
             try:
-                validaciones.jobname(work_job, malla, self.control_record)
-                validaciones.application(work_job, malla, self.control_record)
-                validaciones.subapp(work_job, malla, self.control_record)
-                validaciones.atributos(work_job, malla, self.control_record)
-                validaciones.variables(work_job, malla, self.control_record)
-                validaciones.marcas_in(work_job, malla, self.control_record)
-                validaciones.marcas_out(work_job, malla, self.control_record)
-                validaciones.acciones(work_job, malla, self.control_record)
-                validaciones.tipo(work_job, malla, self.control_record)
-                validaciones.recursos_cuantitativos(work_job, malla, self.control_record)
+                validaciones.jobname(job, malla, self.control_record)
+                validaciones.application(job, malla, self.control_record)
+                validaciones.subapp(job, malla, self.control_record)
+                validaciones.atributos(job, malla, self.control_record)
+                validaciones.variables(job, malla, self.control_record)
+                validaciones.marcas_in(job, malla, self.control_record)
+                validaciones.marcas_out(job, malla, self.control_record)
+                validaciones.acciones(job, malla, self.control_record)
+                validaciones.tipo(job, malla, self.control_record)
+                validaciones.recursos_cuantitativos(job, malla, self.control_record)
+
+                if not job.es_spark_compactor():
+                    # validaciones.verificar_variables_nuevas(job, self.control_record)
+                    pass
+
             except Exception as control_error:
                 # TODO: Lanzar cuadro de error
-                msg = f"Ocurrió un error inesperado al realizar controles sobre el job [{work_job.name}] contactar a Tongas"
+                msg = f"Ocurrió un error inesperado al realizar controles sobre el job [{job.name}]"
                 raise Exception(msg) from control_error
 
         # La validación de cadenas es un control a nivel malla, no es puntual con los jobs, lo podemos dejar acá
         try:
-            validaciones.cadenas_malla(malla, self.control_record)
+            validaciones.cadena_smart_cleaner(malla, self.control_record)
         except Exception as error_cadenas:
             msg = f"Ocurrió un error inesperado al analizar las cadenas de la malla"
             raise Exception(msg) from error_cadenas
@@ -164,8 +174,7 @@ class InterfazValidador(InterfazApp):
         self.control_record.add_inicial(f"Malla analizada [{malla.name}]")
         self.control_record.add_inicial(f"UUAA: {malla.uuaa}")
         self.control_record.add_inicial(f"Periodicidad: {malla.periodicidad}")
-        self.control_record.add_inicial(
-            f"Cantidad jobs {malla.name}: {len(malla.jobs())}")
+        self.control_record.add_inicial(f"Cantidad jobs {malla.name}: {len(malla.jobs())}")
         self.control_record.add_inicial('-' * 70)
 
         msg_box = self.control_record.generate_log(informacion_extra_recorders)

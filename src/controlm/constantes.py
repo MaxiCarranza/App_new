@@ -29,7 +29,7 @@ class Regex:
     MALLA = r'^CR-AR(?P<uuaa>K?[A-Z0-9]{3,4})(?P<periodicidad>[A-Z]{3})-[TK]02$'
     MALLA_TMP = r'^CR-AR(?P<uuaa>K?[A-Z0-9]{3,4})(?P<periodicidad>TMP)-[TK](?!02)\d{2}$'
     APPLICATION = r'^(?P<uuaa>K?[A-Z0-9]{3,4})-(?P<pais>[A-Z]{2})-(?P<app>[A-Z0-9]+)$'
-    JOBNAME = r'^(?P<pais>[A-Z])(?P<uuaa>K?[A-Z0-9]{3,4})(?P<tipo>[NEDRTCWAVMBPGSD])(?P<entorno>[PBDTCM])(?P<periodicidad>\d)[0-9A-Z]{3}$'
+    JOBNAME = r'^(?P<pais>[A-Z])(?P<uuaa>K?[A-Z0-9]{3,4})(?P<tipo>[NERDTCWAVMBPGSDL])(?P<entorno>[PBDTCM])(?P<periodicidad>\d)[0-9A-Z]{3}$'
     MAILS = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
     TABLA = r'^t_(?P<uuaa>k?[a-z0-9]{3,4})_.+$'
 

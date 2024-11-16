@@ -720,8 +720,11 @@ def tipo(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
                 cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta un script sh. Valor obtenido [{job.command}]")
 
         case 'P':
-            nombre_script = job.atributos.get('MEMNAME')
-            if nombre_script is not None and nombre_script != 'multi_tpt.sh':
+            if job.es_spark_compactor():
+                if job.command is None or job.command == '' or not job.command.startswith('/opt/datio/sentry-ar/dataproc_sentry.py'):
+                    cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta el comando de dataproc_sentry.py correspondiente. Valor obtenido [{job.command}]")
+
+            elif not job.es_tpt():
                 cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta un script multi_tpt.sh. Valor obtenido [{job.command}]")
 
         case _:
@@ -730,6 +733,7 @@ def tipo(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     # Controlamos correspondencia entre dataproc id y tipo de job
     if job.dataproc_id is None:
         return
+
     info_dataproc = job.get_info_dataproc_id()
     discrepancia_datapros = False
     match job.tipo:
@@ -748,8 +752,12 @@ def tipo(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
             if info_dataproc['subtipo'] != 'rmv':
                 discrepancia_datapros = True
 
-        case 'W' | 'T' | 'P':
+        case 'W' | 'T':
             cr.add_item(job.name, f"El job es [{tipo_verbose}] y se encontró un dataproc en el mismo [{job.dataproc_id}], no debería tenerlo por su tipo")
+
+        case 'P':
+            if not job.es_spark_compactor():
+                cr.add_item(job.name, f"El job es [{tipo_verbose}] y se encontró un dataproc en el mismo [{job.dataproc_id}], no debería tenerlo por su tipo")
 
         case _:
             cr.add_item(job.name, f"No se pudo controlar el dataproc del Job [{job.dataproc_id}] debido a que tiene un tipo desconocido [{job.tipo}]")
@@ -759,9 +767,9 @@ def tipo(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
         cr.add_item(job.name, mensaje)
 
 
-def cadenas_malla(malla: ControlmFolder, cr: ControlRecorder):
+def cadena_smart_cleaner(malla: ControlmFolder, cr: ControlRecorder):
     """
-    Realiza controles sobre todas las cadenas de jobs que componen a la malla
+    Valida que haya tantos jobs de smart cleaner como de ingesta en una cadena, puede fallar
 
     :param malla: Malla que contiene el job
     :param cr: Recorder que se encargará de guardar los controles fallidos
@@ -784,10 +792,10 @@ def cadenas_malla(malla: ControlmFolder, cr: ControlRecorder):
         }
 
         for jobname_cadena in cadena:
-            job = malla.obtener_job(jobname_cadena)
-            if job.tipo in ['T', 'P', 'C'] and job.fase is not None:
+            job: ControlmJob = malla.obtener_job(jobname_cadena)
+            if job.es_job_de_ingesta() and job.fase is not None:
                 contador_instancias_ingesta[job.fase] += 1
-            if job.tipo in ['S'] and job.fase is not None:
+            if job.es_smart_cleaner() and job.fase is not None:
                 contador_instancias_borradosm[job.fase] += 1
 
         for fase in contador_instancias_ingesta.keys():
@@ -795,6 +803,65 @@ def cadenas_malla(malla: ControlmFolder, cr: ControlRecorder):
                 diferencia = contador_instancias_ingesta[fase] - contador_instancias_borradosm[fase]
                 mensaje = f"Para la cadena {cadena}, existen más jobs de ingesta en {fase} [{contador_instancias_ingesta[fase]}] que smart cleaners de {fase} [{contador_instancias_borradosm[fase]}]. Faltarían [{diferencia}] SP's de {fase}"
                 cr.add_item(recorder_key, mensaje)
+
+
+def verificar_variables_nuevas(job: ControlmJob, cr: ControlRecorder):
+
+    """
+    Verifica que, si hay jobs nuevos en la malla, estos contengan estas 6 nuevas variables: ORIGEN, TABLA_ORIGEN, TABLA, TRANSFER_ID, XCOM, FORMATEADOR. Las 3 ultimas, solo si son FW o TP.
+    Solo verifica que estas variables existan, no se fija en su contenido
+
+    :param job: Job a analizar los RRCC
+    :param cr: Recorder que se encargará de guardar los controles fallidos
+
+    """
+
+    def validar_variables_nuevas(job_obj: ControlmJob, dict_variables: dict):
+        """
+        Subcontrol blablabla, TODO: Completar docstring
+        """
+
+        for var_key in job_obj.variables.keys():
+
+            var_key = var_key.replace('%%', '')
+
+            if var_key in dict_variables.keys():
+                dict_variables[var_key] = True
+
+        variables_no_encontradas = [variable for variable, valor in dict_variables.items() if valor is False]
+        variables_encontradas = [variable for variable, valor in dict_variables.items() if valor is True]
+        return variables_no_encontradas, variables_encontradas
+
+    variables_nuevas_obligatorias = {
+        'ORIGEN': False,
+        'TABLA_ORIGEN': False,
+        'TABLA_DATIO': False,
+    }
+
+    variables_nuevas_obligatorias_fw_tp = {
+        'FORMATEADOR': False,
+        'XCOM': False,
+        'TRANSFER_ID': False
+    }
+
+    variables_generales_no_encontradas, _ = validar_variables_nuevas(job, variables_nuevas_obligatorias)
+    variables_fw_tp_no_encontradas, _ = validar_variables_nuevas(job, variables_nuevas_obligatorias_fw_tp)
+
+    if len(variables_generales_no_encontradas) > 0:
+        cr.add_listado(job.name, f"Las siguientes variables obligatorias nuevas no se encuentran en el job ",
+                       variables_generales_no_encontradas)
+
+    if len(variables_fw_tp_no_encontradas) > 0:
+
+        if job.es_transmisiontp():
+
+            cr.add_listado(job.name, f"Al tratarse de un TP, las siguientes variables no estan creadas ",
+                           variables_fw_tp_no_encontradas)
+
+        elif job.es_filewatcher():
+
+            cr.add_listado(job.name, f"Al tratarse de un FW, las siguientes variables no estan creadas ",
+                           variables_fw_tp_no_encontradas)
 
 
 def cadenas_global(digrafo_global: ControlmDigrafo, contenedor_global: ControlmContainer):

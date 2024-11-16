@@ -173,7 +173,7 @@ class ControlmJob:
         'S': 'smart-cleaner',
         'V': 'hammurabi',
         'T': 'transmision',
-        'P': 'transmisionTPT',
+        'P': 'transmisionTPT/spark-compactor',
         'B': 'borradoHDFS',
         'G': 'sparkjob-custom',
         'D': 'dummy',
@@ -304,7 +304,10 @@ class ControlmJob:
         match self.tipo:
 
             case 'P' | 'T':  # Transmision
-                self.fase = 'staging'
+                if self.es_spark_compactor():
+                    self.fase = 'master'
+                else:
+                    self.fase = 'staging'
 
             case 'B' | 'S':  # Borrado
                 info_match_dataproc = self.get_info_dataproc_id()
@@ -421,7 +424,7 @@ class ControlmJob:
         return self._match_dataproc_namespace.group(0) if self._match_dataproc_namespace is not None else None
 
     @property
-    def command(self) -> str | None:
+    def command(self) -> str:
         return self.atributos.get('CMDLINE')
 
     def get_info_dataproc_id(self) -> dict:
@@ -517,8 +520,24 @@ class ControlmJob:
         return tipo == 'T'
 
     def es_tpt(self) -> bool:
+        nombre_script = self.atributos.get('MEMNAME')
+        return nombre_script is not None and nombre_script == 'multi_tpt.sh'
+
+    def es_kirby(self) -> bool:
         tipo = self._match_jobname.group('tipo')
-        return tipo == 'P'
+        return tipo == 'C'
+
+    def es_spark_compactor(self) -> bool:
+        if self.dataproc_id is not None:
+            info_dp = self.get_info_dataproc_id()
+            return info_dp['tipo'] == 'spk' and info_dp['subtipo'] == 'mov' and info_dp['nombre'].startswith('compactor')
+        return False
+
+    def es_job_de_ingesta(self) -> bool:
+        return self.es_kirby() or self.es_transmisiontp() or self.es_tpt()
+
+    def es_smart_cleaner(self) -> bool:
+        return self.tipo in ['S']
 
     def expandir_string(self, template: str, iter_actual: int = 1) -> str:
         """
@@ -1240,7 +1259,9 @@ class MallaMaxi:
                 )
 
     def exportar(self, save_path: str):
-        """Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi"""
+        """
+        Genera un xml que representa una malla da control-M a partir de una instancia de MallaMaxi
+        """
         root = ET.Element("DEFTABLE")
         root.attrib['xmlns:xsi'] = "http://www.w3.org/2001/XMLSchema-instance"
 
