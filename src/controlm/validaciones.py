@@ -223,8 +223,8 @@ def variables(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
         # if not var_key.isupper():
         #     cr.add_item(job.name, f"La variable [{var_key}] tiene minusculas, no está permitido por el estandar")
 
-    if not existe_tabla:
-        cr.add_item_listado_general('tabla_identificadora', job.name)
+    # if not existe_tabla:
+    #     cr.add_item_listado_general('tabla_identificadora', job.name)
 
     datapros_encontrados = []  # Un job no puede tener dos datapros
     for var_key, var_value in job.variables.items():

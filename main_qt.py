@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QApplication
 from src.view.reli_ui import InterfazValidador
 
 if __name__ == '__main__':
+
     try:
         app = QApplication(sys.argv)
         window = InterfazValidador()

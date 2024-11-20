@@ -444,7 +444,7 @@ def abrir_calendario():
     fecha_op2.config(fg="white")
     ventana_calendario = tk.Toplevel(dias_jobs_frame)
     ventana_calendario.title("Seleccionar Fechas")
-    icon_path = os.path.join("src", "img", "bbva.ico")
+    icon_path = os.path.join("src", "resources", "img", "bbva.ico")
     ventana_calendario.iconbitmap(icon_path)
 
     calendario = Calendar(ventana_calendario, selectmode='day', year=2024, month=9, day=1)
@@ -496,7 +496,7 @@ def main():
 
     root = tk.Tk()
     root.title("Generador de Mallas Temporales - BBVA")
-    icon_path = os.path.join("src", "img", "bbva.ico")
+    icon_path = os.path.join("src", "resources", "img", "bbva.ico")
     root.iconbitmap(icon_path)
     root.geometry("1000x700")
     root.resizable(True, True)
@@ -519,7 +519,7 @@ def main():
     fechas_seleccionadas = []
 
     # Cargar la imagen de fondo
-    icon_path = os.path.join("src", "img", "im_bbva.png")
+    icon_path = os.path.join("src", "resources", "img", "im_bbva.png")
     image = Image.open(icon_path)
     image = image.resize((110, 40), Image.LANCZOS)
     photo = ImageTk.PhotoImage(image)

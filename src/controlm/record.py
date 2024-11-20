@@ -221,8 +221,9 @@ class ControlRecorder(Recorder):
             if len(self.info) == 0:
                 file.write("No se detectaron errores\n")
 
-    def generate_log(self, info_extra: dict):
+    def generate_log(self, info_extra: dict) -> str:
         """
+        Genera un string para que luego sea escrito en un archivo txt
         """
 
         nuevos = info_extra.get('jobnames_nuevos', '')
@@ -267,6 +268,14 @@ class ControlRecorder(Recorder):
             final_str += "No se detectaron errores\n"
 
         return final_str
+
+    def generate_html(self, info_extra: dict) -> str:
+        """
+        Genera un string html que representan los logs pero formateados lindo, se verá reflejado en el front del
+        validador
+        """
+
+        nuevos = info_extra.get('jobnames_nuevos', '')
 
 
 class RecorderTmp:
