@@ -144,6 +144,9 @@ class ControlmFolder:
         """
         return self._jobs.get(jobname_a_buscar, None)
 
+    def get_jobnames_rc(self):
+        return [job.name for job in self.jobs() if job.es_ruta_critica()]
+
     @property
     def uuaa(self) -> str:
         return self._match.group('uuaa')

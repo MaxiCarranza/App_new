@@ -1,6 +1,7 @@
 """Clases que se encargan de logear... cosas"""
 
 from abc import abstractmethod
+from copy import deepcopy
 
 
 class Recorder:
@@ -8,30 +9,34 @@ class Recorder:
     Clase que se encarga de logear todos los controles / diferencias que se encuentren entre los dos xml
     """
 
-    def __init__(self) -> None:
-        self.info = {
-            'INICIAL': [],
-            'GENERAL': []
-        }
+    INI_KEY = 'INICIAL'
+    GEN_KEY = 'GENERAL'
+
+    def __init__(self):
+        self.info = dict()
+
+    def _add_or_append_dict_item(self, key: str, item: tuple[str, list[str] | None]):
+        try:
+            self.info[key].append(item)
+        except KeyError:
+            self.info[key] = [item]
 
     def add_inicial(self, mensaje: str) -> None:
         """
-        Agrega items iniciales al log, son los primeros que se muestran en el log
+        Agrega items iniciales al log, son los primeros que se muestran
 
         :param mensaje: String que repesenta el item a ser agregado, no utilizar \n ya que se lo agrega aca
         """
-        item = f"{mensaje}\n"
-        self.info['INICIAL'].append(item)
+        self._add_or_append_dict_item(self.INI_KEY, (mensaje, None))
 
     def add_general(self, mensaje: str) -> None:
         """
         Agrega item general al log, utilizarlos para items que no son puntuales a ningun job pero si a nivel malla.
         Va inmediatamente despues del INICIAL
 
-        :param mensaje: String que repesenta el item a ser agregado, no utilizar \n ya que se lo agrega aca
+        :param mensaje: String que repesenta el item a ser agregado
         """
-        item = f"\t{mensaje}\n"
-        self.info['GENERAL'].append(item)
+        self._add_or_append_dict_item(self.GEN_KEY, (mensaje, None))
 
     def add_item(self, key: str, mensaje: str) -> None:
         """
@@ -40,16 +45,16 @@ class Recorder:
         :param key: Key que agrupara todos los items
         :param mensaje: Item a ser agregado
         """
-        item = f"\t{mensaje}\n"
-        try:
-            self.info[key].append(item)
-        except KeyError:
-            self.info[key] = [item]
+        if key in [Recorder.INI_KEY, Recorder.GEN_KEY]:
+            raise KeyError(f"No se puede agregar un item cuya key está dentro de las no permitidas {[Recorder.INI_KEY, Recorder.GEN_KEY]}")
+        else:
+            self._add_or_append_dict_item(key, (mensaje, None))
 
     def add_listado(self, key: str, mensaje: str, elementos: [set, list]) -> None:
         """
         Agrega un listado a una key y lo formatea acorde.
-        Ej: Si nos viene [A, B, C] con un mensaje 'Los siguientes id fallaron' con una key 'key_emjeplo', se formateara así:
+        Ej: Si nos viene [A, B, C] con un mensaje 'Los siguientes id fallaron' con una key 'key_emjeplo', se formateara
+        así:
 
         key_ejemplo
             Los siguientes id fallaron:
@@ -61,23 +66,9 @@ class Recorder:
         :param mensaje: Item a ser agregado
         :param elementos: Lista de elementos que van a estar asociados a un mensaje
         """
-
-        if not mensaje.endswith(':'):
-            mensaje += ':'
-
-        elementos = list(elementos)  # Por si viene un set, que no se pueden acceder por indice
-        if len(elementos) == 1:
-            mensaje_final = f"\t{mensaje} [{elementos[0]}]"
-        else:
-            mensaje_final = f"\t{mensaje}"
-            for item in elementos:
-                mensaje_final += f"\n\t\t[{item}]"
-        mensaje_final += '\n'
-
-        try:
-            self.info[key].append(mensaje_final)
-        except KeyError:
-            self.info[key] = [mensaje_final]
+        if isinstance(elementos, set):
+            elementos = list(elementos)  # Por si viene un set, que no se pueden acceder por indice
+        self._add_or_append_dict_item(key, (mensaje, elementos))
 
     @abstractmethod
     def write_log(self, filename: str, info_extra: dict):
@@ -87,6 +78,7 @@ class Recorder:
 class DiffRecorder(Recorder):
     """
     Registra todas las diferencias encontradas por el proceso en un .log
+    TODO: Con el ultimo refactor de la clase padre se va a romper, arreglar
     """
 
     def add_diff(self, key: str, mensaje: str, work_val: str, live_val: str) -> None:
@@ -167,6 +159,9 @@ class ControlRecorder(Recorder):
         """
         self.listados_generales[identificador][1].append(jobname)
 
+    def _hay_errores(self):
+        return len(self.info.keys()) > 1
+
     def write_log(self, filename: str, info_extra: dict):
         """
         Escribe en un .log todas las controles fallidos. Cada key tiene sus items.
@@ -181,91 +176,49 @@ class ControlRecorder(Recorder):
         rc = info_extra.get('jobnames_ruta_critica', '')
 
         with open(filename, 'w', encoding='UTF-8') as file:
+            file.write(self._generate_log({'jobnames_ruta_critica': rc}))  # FIXME: Enserio ?
 
-            # Escribimos los items iniciales
-            items_iniciales = self.info.pop('INICIAL')
-            for item in items_iniciales:
-                file.write(item)
-
-            # Escribimos los items generales, si los hay
-            try:
-                items_generales = self.info.pop('GENERAL')
-            except KeyError:
-                pass
-            else:
-                if len(items_generales) > 0:
-                    file.write(f"\nGENERAL\n")
-                    for item in items_generales:
-                        file.write(item)
-
-            value: str | list
-            for key, value in self.info.items():
-                nuevo_str = " (NUEVO)" if key in nuevos else ""
-                modif_str = " (MODIFICADO)" if key in modificados else ""
-                rc_str = " - (RUTA CRITICA)" if key in rc else ""
-                file.write(f"\n{key}{nuevo_str}{modif_str}{rc_str}\n")
-                if isinstance(value, list):
-                    for v in value:
-                        file.write(v)
-                else:
-                    file.write(value)
-
-            # Los listados generales van al final
-            for listado_general in self.listados_generales.values():
-                if listado_general[1]:  # Si hay items en la lista
-                    file.write(f"\n{listado_general[0]}\n")
-                    for item in listado_general[1]:
-                        file.write(f"\t\t{item}\n")
-                    file.write('\n')
-
-            if len(self.info) == 0:
-                file.write("No se detectaron errores\n")
-
-    def generate_log(self, info_extra: dict) -> str:
+    def _generate_log(self, info_extra: dict) -> str:
         """
         Genera un string para que luego sea escrito en un archivo txt
         """
 
-        nuevos = info_extra.get('jobnames_nuevos', '')
-        modificados = info_extra.get('jobnames_modificados', '')
-        rc = info_extra.get('jobnames_ruta_critica', '')
+        info = deepcopy(self.info)
+
+        jobnames_rc = info_extra.get('jobnames_ruta_critica', '')
 
         final_str = ""
 
-        # # Escribimos los items iniciales
-        # items_iniciales = self.info.pop('INICIAL')
-        # for item in items_iniciales:
-        #     final_str += item
+        item_ini_list: list | None = info.pop(self.INI_KEY, None)
+        if item_ini_list is not None:
+            for item in item_ini_list:
+                final_str += f'{item[0]}\n'
+        final_str += '\n'
 
-        # Escribimos los items generales, si los hay
-        items_generales = self.info.pop('GENERAL')
-        if len(items_generales) > 0:
-            final_str += f"\nGENERAL\n"
-            for item in items_generales:
-                final_str += item
+        if not self._hay_errores():
+            final_str += f'No se encontraron errores en la malla.\n'
+            return final_str
+        else:
+            final_str += f'La malla contiene los siguientes errores:\n\n'
 
-        value: str | list
-        for key, value in self.info.items():
-            nuevo_str = " (NUEVO)" if key in nuevos else ""
-            modif_str = " (MODIFICADO)" if key in modificados else ""
-            rc_str = " - (RUTA CRITICA)" if key in rc else ""
-            final_str += f"\n{key}{nuevo_str}{modif_str}{rc_str}\n"
-            if isinstance(value, list):
-                for v in value:
-                    final_str += v
-            else:
-                final_str += value
+        item_gen_list: list | None = info.pop(self.GEN_KEY, None)
+        if item_gen_list is not None:
+            final_str += f'{self.GEN_KEY}\n'
+            for item in item_gen_list:
+                final_str += f'\t{item[0]}\n'
+        final_str += '\n'
 
-        # Los listados generales van al final
-        for listado_general in self.listados_generales.values():
-            if listado_general[1]:  # Si hay items en la lista
-                final_str += f"\n{listado_general[0]}\n"
-                for item in listado_general[1]:
-                    final_str += f"\t\t{item}\n"
-                final_str += '\n'
-
-        if len(self.info) == 0:
-            final_str += "No se detectaron errores\n"
+        for jobname, item_list in info.items():
+            rc_str = " - (RUTA CRITICA)" if jobname in jobnames_rc else ""
+            final_str += f'{jobname}{rc_str}\n'
+            for item in item_list:
+                if item[1] is None:
+                    final_str += f'\t{item[0]}\n'
+                else:
+                    final_str += f'\t{item[0]}\n'
+                    for sub_item in item[1]:
+                        final_str += f'\t\t{sub_item}\n'
+            final_str += '\n'
 
         return final_str
 
@@ -275,7 +228,48 @@ class ControlRecorder(Recorder):
         validador
         """
 
-        nuevos = info_extra.get('jobnames_nuevos', '')
+        info = deepcopy(self.info)
+
+        control_html = '<META http-equiv="Content-Type" content="text/html; charset=UTF-8">'
+
+        jobnames_rc = info_extra.get('jobnames_ruta_critica', '')
+        malla_nombre = info_extra.get('malla_nombre', '')
+
+        info.pop(self.INI_KEY, None)
+
+        if not self._hay_errores():
+            control_html += f'<p><span style="background-color:#8FD14F; font-size: 15px;"><strong>No se encontraron errores en la malla {malla_nombre}.</strong></span></p>'
+            return control_html
+        else:
+            control_html += f'<p><span style="background-color:#F24726; color: white; font-size: 15px;"><strong>La malla {malla_nombre} contiene los siguientes errores:</strong></span></p>'
+
+        item_gen_list: list | None = info.pop(self.GEN_KEY, None)
+        if item_gen_list is not None:
+            control_html += f'<p>{self.GEN_KEY}</p>'
+            control_html += f'<ul>'
+            for item in item_gen_list:
+                control_html += f'<li>{item[0]}</li>'
+            control_html += f'</ul>'
+            control_html += f'<br>'
+
+        for jobname, item_list in info.items():
+            rc_str = " - (RUTA CRITICA)" if jobname in jobnames_rc else ""
+            control_html += f'<p>{jobname}{rc_str}</p>'
+            control_html += f'<ul>'
+            for item in item_list:
+                if item[1] is None:
+                    control_html += f'<li><span style="color: #E1AD01;"><strong>WARNING: </strong></span>{item[0]}</li>'
+                    # control_html += f'<li><span style="color: RED;"><strong>ERROR: </strong></span>{item[0]}</li>'
+                else:
+                    control_html += f'<li>{item[0]}</li>'
+                    control_html += f'<ul>'
+                    for sub_item in item[1]:
+                        control_html += f'<li>{sub_item}</li>'
+                    control_html += f'</ul>'
+            control_html += f'</ul>'
+            control_html += f'<br>'
+
+        return control_html
 
 
 class RecorderTmp:

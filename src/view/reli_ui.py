@@ -27,7 +27,7 @@ class InterfazValidador(QMainWindow):
 
         self.folder_path = None
         self.control_record = None
-        self.malla_nombre = None
+        self.malla = None
 
         self.setWindowTitle("Generador de Mallas Temporales - BBVA")
         self.setMinimumSize(1000, 600)
@@ -93,6 +93,7 @@ class InterfazValidador(QMainWindow):
             "color: white; font: bold 20px Arial; background: #414bb2; "
             "border-color: white; padding: 5px;")
         download_button.clicked.connect(self.download_log)
+        # download_button.setEnabled(False)
         self.validation_layout.addWidget(download_button, alignment=Qt.AlignmentFlag.AlignRight)
 
         spacer_horizontal = QSpacerItem(0, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
@@ -128,7 +129,7 @@ class InterfazValidador(QMainWindow):
         if file_path:
             self.folder_label.setText(f"Malla seleccionada: {Path(file_path).name}")
             self.folder_label.setStyleSheet("color: black; font: 15px Arial; background: white; padding-left: 3px;")
-        self.folder_path = file_path
+            self.folder_path = file_path
 
     def validate(self):
 
@@ -138,60 +139,56 @@ class InterfazValidador(QMainWindow):
 
         self.control_record = ControlRecorder()
 
-        malla = ControlmFolder(xml_input=self.folder_path)
-        self.malla_nombre = malla.name
+        self.malla = ControlmFolder(xml_input=self.folder_path)
 
-        for job in malla.jobs():
+        for job in self.malla.jobs():
             try:
-                validaciones.jobname(job, malla, self.control_record)
-                validaciones.application(job, malla, self.control_record)
-                validaciones.subapp(job, malla, self.control_record)
-                validaciones.atributos(job, malla, self.control_record)
-                validaciones.variables(job, malla, self.control_record)
-                validaciones.marcas_in(job, malla, self.control_record)
-                validaciones.marcas_out(job, malla, self.control_record)
-                validaciones.acciones(job, malla, self.control_record)
-                validaciones.tipo(job, malla, self.control_record)
-                validaciones.recursos_cuantitativos(job, malla, self.control_record)
+                validaciones.jobname(job, self.malla, self.control_record)
+                validaciones.application(job, self.malla, self.control_record)
+                validaciones.subapp(job, self.malla, self.control_record)
+                validaciones.atributos(job, self.malla, self.control_record)
+                validaciones.variables(job, self.malla, self.control_record)
+                validaciones.marcas_in(job, self.malla, self.control_record)
+                validaciones.marcas_out(job, self.malla, self.control_record)
+                validaciones.acciones(job, self.malla, self.control_record)
+                validaciones.tipo(job, self.malla, self.control_record)
+                validaciones.recursos_cuantitativos(job, self.malla, self.control_record)
 
                 if not job.es_spark_compactor():
                     # validaciones.verificar_variables_nuevas(job, self.control_record)
                     pass
 
             except Exception as control_error:
-                # TODO: Lanzar cuadro de error
                 msg = f"Ocurrió un error inesperado al realizar controles sobre el job [{job.name}]"
                 raise Exception(msg) from control_error
 
         # La validación de cadenas es un control a nivel malla, no es puntual con los jobs, lo podemos dejar acá
         try:
-            validaciones.cadena_smart_cleaner(malla, self.control_record)
+            validaciones.cadena_smart_cleaner(self.malla, self.control_record)
         except Exception as error_cadenas:
             msg = f"Ocurrió un error inesperado al analizar las cadenas de la malla"
             raise Exception(msg) from error_cadenas
 
-        informacion_extra_recorders = {
-            'jobnames_nuevos': [],
-            'jobnames_modificados': [],
-            'jobnames_ruta_critica': [job.name for job in malla.jobs() if job.es_ruta_critica()]
+        informacion_extra_recorder = {
+            'jobnames_ruta_critica': [job.name for job in self.malla.jobs() if job.es_ruta_critica()],
+            'malla_nombre': self.malla.name
         }
 
-        self.control_record.add_inicial(f"Fecha de generación [{datetime.now()}]")
-        self.control_record.add_inicial(f"Malla analizada [{malla.name}]")
-        self.control_record.add_inicial(f"UUAA: {malla.uuaa}")
-        self.control_record.add_inicial(f"Periodicidad: {malla.periodicidad}")
-        self.control_record.add_inicial(f"Cantidad jobs {malla.name}: {len(malla.jobs())}")
-        self.control_record.add_inicial('-' * 70)
+        self.control_record.add_inicial(f"Fecha de generación: {datetime.now():%d/%m/%Y %H:%M:%S}")
+        self.control_record.add_inicial(f"Malla analizada: {self.malla.name}")
+        self.control_record.add_inicial(f"UUAA: {self.malla.uuaa}")
+        self.control_record.add_inicial(f"Periodicidad: {self.malla.periodicidad}")
+        self.control_record.add_inicial(f"Cantidad jobs: {len(self.malla.jobs())}")
 
-        msg_box = self.control_record.generate_log(informacion_extra_recorders)
-        self.validation_textbox.setText(f"La malla contiene los siguientes errores:\n{msg_box}")
+        html = self.control_record.generate_html(informacion_extra_recorder)
+        self.validation_textbox.setHtml(html)
 
     def download_log(self):
-        if not hasattr(self, 'malla_nombre') or self.malla_nombre is None:
+        if self.malla is None:
             self.alert("Aviso", f"No existen logs para descargar.")
         else:
-            download_path = QFileDialog.getExistingDirectory(self, os.getcwd())
+            download_path = QFileDialog.getExistingDirectory(self, 'Seleccione el directorio donde guardar el log', os.getcwd())
             if download_path and download_path != '':
-                file_path = os.path.join(download_path, f'CONTROLES_{self.malla_nombre}.log')
-                self.control_record.write_log(file_path, {})
+                file_path = os.path.join(download_path, f'CONTROLES_{self.malla.name}.log')
+                self.control_record.write_log(file_path, {'jobnames_ruta_critica': self.malla.get_jobnames_rc()})
                 self.alert("Generacion de log", f"Log descargado correctamente en {file_path}")

@@ -63,3 +63,5 @@ MAPEO_PERJOBNAME_PERMALLA = {
     '4': 'MEN',
     '9': 'EVE'
 }
+
+CONTACTO = 'ar-data-hub-solutions.group@bbva.com'

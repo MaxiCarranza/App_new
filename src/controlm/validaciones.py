@@ -648,7 +648,7 @@ def acciones(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
                 # Ejecutamos el control sobre la accion
                 control(job, accion, condicion, malla, reglas_generales, cr)
             else:
-                cr.add_item(job.name, f"Accion no contemplada [{accion.id}]. Contactar con Tongas para implementar.")
+                cr.add_item(job.name, f"Accion no contemplada [{accion.id}]. Contactar con Solutions.")
 
     # Cada regla fallida es informada
     for value in reglas_generales.values():
