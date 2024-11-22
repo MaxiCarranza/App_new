@@ -36,7 +36,7 @@ def jobname(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     """
 
     if not job.jobname_valido():
-        cr.add_item(job.name, f"El jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción.")
+        cr.add_item(job.name, f"El jobname {job.name} no cumple con el estandar.")
         return
     else:
         info_jobname = job.get_info_jobname()
@@ -69,7 +69,7 @@ def application(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     info_app = job.get_info_application()
 
     if info_app is None:
-        cr.add_item(job.name, f"La application [{job.app}] no es la correcta. Corregir este conflicto antes de pasar a producción.")
+        cr.add_item(job.name, f"La application [{job.app}] no es la correcta.")
         return
 
     if info_app['uuaa'] != malla.uuaa:
@@ -106,14 +106,14 @@ def atributos(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     """
 
     if not job.jobname_valido():
-        cr.add_item(job.name, f"No se puede analizar sus atributos debido a que el jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción.")
+        cr.add_item(job.name, f"No se puede analizar sus atributos debido a que el jobname [{job.name}] no cumple con el estandar. Corregir este error antes de pasar a producción.")
         return
     else:
         info_jobname = job.get_info_jobname()
 
     for key_atributo, val_atritubo in job.atributos.items():
 
-        if key_atributo == 'DESCRIPTION' and val_atritubo.strip() == '':
+        if job.atributos == 'DESCRIPTION' and val_atritubo.strip() == '':
             cr.add_item(job.name, f"La descripción no puede estar vacía")
 
         if key_atributo == 'MAXWAIT':

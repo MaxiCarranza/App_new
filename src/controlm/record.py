@@ -21,7 +21,7 @@ class Recorder:
         except KeyError:
             self.info[key] = [item]
 
-    def add_inicial(self, mensaje: str) -> None:
+    def add_inicial(self, mensaje: str):
         """
         Agrega items iniciales al log, son los primeros que se muestran
 
@@ -29,7 +29,7 @@ class Recorder:
         """
         self._add_or_append_dict_item(self.INI_KEY, (mensaje, None))
 
-    def add_general(self, mensaje: str) -> None:
+    def add_general(self, mensaje: str):
         """
         Agrega item general al log, utilizarlos para items que no son puntuales a ningun job pero si a nivel malla.
         Va inmediatamente despues del INICIAL
@@ -38,7 +38,7 @@ class Recorder:
         """
         self._add_or_append_dict_item(self.GEN_KEY, (mensaje, None))
 
-    def add_item(self, key: str, mensaje: str) -> None:
+    def add_item(self, key: str, mensaje: str):
         """
         Agrega un ítem asociado a una key, que en este caso es un jobname
 
@@ -50,7 +50,7 @@ class Recorder:
         else:
             self._add_or_append_dict_item(key, (mensaje, None))
 
-    def add_listado(self, key: str, mensaje: str, elementos: [set, list]) -> None:
+    def add_listado(self, key: str, mensaje: str, elementos: [set, list]):
         """
         Agrega un listado a una key y lo formatea acorde.
         Ej: Si nos viene [A, B, C] con un mensaje 'Los siguientes id fallaron' con una key 'key_emjeplo', se formateara
@@ -81,7 +81,7 @@ class DiffRecorder(Recorder):
     TODO: Con el ultimo refactor de la clase padre se va a romper, arreglar
     """
 
-    def add_diff(self, key: str, mensaje: str, work_val: str, live_val: str) -> None:
+    def add_diff(self, key: str, mensaje: str, work_val: str, live_val: str):
         """
         Agrega al listado de diferencias un valor que se modificó asociado a una key
 
@@ -96,7 +96,7 @@ class DiffRecorder(Recorder):
         except KeyError:
             self.info[key] = [item]
 
-    def write_log(self, filename: str, info_extra: dict) -> None:
+    def write_log(self, filename: str, info_extra: dict):
         """
         Escribe en un .log todas las diferencias encontradas. Por cada key tiene sus items
 
@@ -277,28 +277,28 @@ class RecorderTmp:
     Clase que engloba y registra las validaciones sobre una malla temporal, escribe dichas validaciones en un archivo .log
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.info = {
             'INICIAL': [],
             'GENERAL': []
         }
 
-    def add_inicial(self, mensaje: str) -> None:
+    def add_inicial(self, mensaje: str):
         mensaje += '\n'
         self.info['INICIAL'].append(mensaje)
 
-    def add_general(self, mensaje: str) -> None:
+    def add_general(self, mensaje: str):
         mensaje += '\n'
         self.info['GENERAL'].append('\t' + mensaje)
 
-    def add_item(self, key: str, mensaje: str) -> None:
+    def add_item(self, key: str, mensaje: str):
         mensaje = f"\t{mensaje}\n"
         try:
             self.info[key].append(mensaje)
         except KeyError:
             self.info[key] = [mensaje]
 
-    def add_listado(self, key: str, mensaje: str, items: set | list) -> None:
+    def add_listado(self, key: str, mensaje: str, items: set | list):
         items = list(items)  # Por si viene un set, que no se pueden acceder por indice
         if len(items) == 1:
             mensaje_final = f"\t{mensaje}: [{items[0]}]"
@@ -311,7 +311,7 @@ class RecorderTmp:
         except KeyError:
             self.info[key] = [mensaje_final + '\n']
 
-    def write_log(self, filename: str) -> None:
+    def write_log(self, filename: str):
         """Escribe en un .log todos los controles"""
 
         with open(filename, 'w', encoding='UTF-8') as file:

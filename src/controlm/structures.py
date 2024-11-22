@@ -465,6 +465,9 @@ class ControlmJob:
         """
         return self._match_jobname.groupdict()
 
+    def get_atriibutos(self, key: str) -> str:
+        return self.atributos.get(key)
+
     def application_valida(self) -> bool:
         """
         Determina si la application de un job es válida, para ello simplemente ve si matcheó con la expresion
