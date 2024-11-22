@@ -174,11 +174,11 @@ class InterfazValidador(QMainWindow):
             'malla_nombre': self.malla.name
         }
 
-        self.control_record.add_inicial(f"Fecha de generación: {datetime.now():%d/%m/%Y %H:%M:%S}")
-        self.control_record.add_inicial(f"Malla analizada: {self.malla.name}")
-        self.control_record.add_inicial(f"UUAA: {self.malla.uuaa}")
-        self.control_record.add_inicial(f"Periodicidad: {self.malla.periodicidad}")
-        self.control_record.add_inicial(f"Cantidad jobs: {len(self.malla.jobs())}")
+        self.control_record.add_inicial(f"Fecha de generación: {datetime.now():%d/%m/%Y %H:%M:%S}", 'I')
+        self.control_record.add_inicial(f"Malla analizada: {self.malla.name}", 'I')
+        self.control_record.add_inicial(f"UUAA: {self.malla.uuaa}", 'I')
+        self.control_record.add_inicial(f"Periodicidad: {self.malla.periodicidad}", 'I')
+        self.control_record.add_inicial(f"Cantidad jobs: {len(self.malla.jobs())}", 'I')
 
         html = self.control_record.generate_html(informacion_extra_recorder)
         self.validation_textbox.setHtml(html)

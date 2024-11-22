@@ -12,45 +12,58 @@ class Recorder:
     INI_KEY = 'INICIAL'
     GEN_KEY = 'GENERAL'
 
+    tipos_str = {
+        'W': 'WARNING',
+        'I': 'INFO',
+        'E': 'ERROR'
+    }
+
+    tipos_html = {
+        'W': '<span style="color: #E1AD01;"><strong>WARNING: </strong></span>',
+        'I': '',
+        'E': '<span style="color: RED;"><strong>ERROR: </strong></span>'
+    }
+
     def __init__(self):
         self.info = dict()
 
-    def _add_or_append_dict_item(self, key: str, item: tuple[str, list[str] | None]):
+    def _add_or_append_dict_item(self, key: str, item: tuple[str, list[str] | None, str]):
         try:
             self.info[key].append(item)
         except KeyError:
             self.info[key] = [item]
 
-    def add_inicial(self, mensaje: str):
+    def add_inicial(self, mensaje: str, tipo: str):
         """
         Agrega items iniciales al log, son los primeros que se muestran
 
         :param mensaje: String que repesenta el item a ser agregado, no utilizar \n ya que se lo agrega aca
         """
-        self._add_or_append_dict_item(self.INI_KEY, (mensaje, None))
+        self._add_or_append_dict_item(self.INI_KEY, (mensaje, None, tipo))
 
-    def add_general(self, mensaje: str):
+    def add_general(self, mensaje: str, tipo: str):
         """
         Agrega item general al log, utilizarlos para items que no son puntuales a ningun job pero si a nivel malla.
         Va inmediatamente despues del INICIAL
 
         :param mensaje: String que repesenta el item a ser agregado
         """
-        self._add_or_append_dict_item(self.GEN_KEY, (mensaje, None))
+        self._add_or_append_dict_item(self.GEN_KEY, (mensaje, None, tipo))
 
-    def add_item(self, key: str, mensaje: str):
+    def add_item(self, key: str, mensaje: str, tipo: str):
         """
         Agrega un ítem asociado a una key, que en este caso es un jobname
 
         :param key: Key que agrupara todos los items
         :param mensaje: Item a ser agregado
+        :param tipo: TODO: Completar
         """
         if key in [Recorder.INI_KEY, Recorder.GEN_KEY]:
             raise KeyError(f"No se puede agregar un item cuya key está dentro de las no permitidas {[Recorder.INI_KEY, Recorder.GEN_KEY]}")
         else:
-            self._add_or_append_dict_item(key, (mensaje, None))
+            self._add_or_append_dict_item(key, (mensaje, None, tipo))
 
-    def add_listado(self, key: str, mensaje: str, elementos: [set, list]):
+    def add_listado(self, key: str, mensaje: str, elementos: [set, list], tipo: str):
         """
         Agrega un listado a una key y lo formatea acorde.
         Ej: Si nos viene [A, B, C] con un mensaje 'Los siguientes id fallaron' con una key 'key_emjeplo', se formateara
@@ -65,10 +78,17 @@ class Recorder:
         :param key: Key que agrupara todos los items
         :param mensaje: Item a ser agregado
         :param elementos: Lista de elementos que van a estar asociados a un mensaje
+        :param tipo: tipo de mensaje
         """
         if isinstance(elementos, set):
             elementos = list(elementos)  # Por si viene un set, que no se pueden acceder por indice
-        self._add_or_append_dict_item(key, (mensaje, elementos))
+        self._add_or_append_dict_item(key, (mensaje, elementos, tipo))
+
+    def _get_desc_tipo(self, identificador: str):
+        return self.tipos_str.get(identificador, '')
+
+    def _get_html_tipo(self, identificador: str):
+        return self.tipos_html.get(identificador, '')
 
     @abstractmethod
     def write_log(self, filename: str, info_extra: dict):
@@ -176,7 +196,7 @@ class ControlRecorder(Recorder):
         rc = info_extra.get('jobnames_ruta_critica', '')
 
         with open(filename, 'w', encoding='UTF-8') as file:
-            file.write(self._generate_log({'jobnames_ruta_critica': rc}))  # FIXME: Enserio ?
+            file.write(self._generate_log({'jobnames_ruta_critica': rc}))  # FIXME: En un futuro, volver a revisar esto
 
     def _generate_log(self, info_extra: dict) -> str:
         """
@@ -213,9 +233,11 @@ class ControlRecorder(Recorder):
             final_str += f'{jobname}{rc_str}\n'
             for item in item_list:
                 if item[1] is None:
-                    final_str += f'\t{item[0]}\n'
+                    clasif_str = f"[{self._get_desc_tipo(item[2])}]: "
+                    final_str += f'\t{clasif_str}{item[0]}\n'
                 else:
-                    final_str += f'\t{item[0]}\n'
+                    clasif_str = f"[{self._get_desc_tipo(item[2])}]: "
+                    final_str += f'\t{clasif_str}{item[0]}\n'
                     for sub_item in item[1]:
                         final_str += f'\t\t{sub_item}\n'
             final_str += '\n'
@@ -248,7 +270,8 @@ class ControlRecorder(Recorder):
             control_html += f'<p>{self.GEN_KEY}</p>'
             control_html += f'<ul>'
             for item in item_gen_list:
-                control_html += f'<li>{item[0]}</li>'
+                tipo_html = self._get_html_tipo(item[2])
+                control_html += f'<li>{tipo_html}{item[0]}</li>'
             control_html += f'</ul>'
             control_html += f'<br>'
 
@@ -258,10 +281,11 @@ class ControlRecorder(Recorder):
             control_html += f'<ul>'
             for item in item_list:
                 if item[1] is None:
-                    control_html += f'<li><span style="color: #E1AD01;"><strong>WARNING: </strong></span>{item[0]}</li>'
-                    # control_html += f'<li><span style="color: RED;"><strong>ERROR: </strong></span>{item[0]}</li>'
+                    tipo_html = self._get_html_tipo(item[2])
+                    control_html += f'<li>{tipo_html}{item[0]}</li>'
                 else:
-                    control_html += f'<li>{item[0]}</li>'
+                    tipo_html = self._get_html_tipo(item[2])
+                    control_html += f'<li>{tipo_html}{item[0]}</li>'
                     control_html += f'<ul>'
                     for sub_item in item[1]:
                         control_html += f'<li>{sub_item}</li>'

@@ -24,6 +24,7 @@ from src.controlm.structures import (
 )
 from src.controlm.record import ControlRecorder, RecorderTmp
 from src.controlm.constantes import Regex
+from src.controlm.constantes import VARIABLES_NO_PERMITIDAS, VARIABLES_VACIAS_VALIDAS
 
 
 def jobname(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -36,25 +37,25 @@ def jobname(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     """
 
     if not job.jobname_valido():
-        cr.add_item(job.name, f"El jobname {job.name} no cumple con el estandar.")
+        cr.add_item(job.name, f"El jobname {job.name} no cumple la nomenclatura estandar", 'E')
         return
     else:
         info_jobname = job.get_info_jobname()
 
     if info_jobname['uuaa'] != malla.uuaa:
-        cr.add_item(job.name, f"No coincide la uuaa del jobname [{info_jobname['uuaa']}] con la de la malla [{malla.uuaa}]")
+        cr.add_item(job.name, f"No coincide la uuaa del jobname [{info_jobname['uuaa']}] con la de la malla [{malla.uuaa}]", 'E')
 
     if info_jobname['entorno'] != 'P':
-        cr.add_item(job.name, f"El jobname no está ambientado a producción. Valor esperado [P], obtenido [{info_jobname['entorno']}]")
+        cr.add_item(job.name, f"El jobname no está ambientado a producción. Valor esperado [P], obtenido [{info_jobname['entorno']}]", 'E')
 
     if info_jobname['periodicidad'] == 9:
-        cr.add_item(job.name, f"El jobname tiene periodicidad de una malla temporal [9].")
+        cr.add_item(job.name, f"El jobname tiene periodicidad de una malla temporal [9]", 'E')
 
     if info_jobname['pais'] != 'A':
-        cr.add_item(job.name, f"El país de jobname no es ARGENTINA. Valor obtenido [{info_jobname['pais']}], valor esperado [A]")
+        cr.add_item(job.name, f"El país de jobname no es ARGENTINA. Valor obtenido [{info_jobname['pais']}], valor esperado [A]", 'E')
 
     if constantes.MAPEO_PERJOBNAME_PERMALLA[info_jobname['periodicidad']] != malla.periodicidad:
-        cr.add_item(job.name, f"No coincide la periodicidad del job[{info_jobname['periodicidad']}({constantes.MAPEO_PERJOBNAME_PERMALLA[info_jobname['periodicidad']]})], con la de la malla a la que pertenece[{malla.periodicidad}]")
+        cr.add_item(job.name, f"No coincide la periodicidad del job[{info_jobname['periodicidad']}({constantes.MAPEO_PERJOBNAME_PERMALLA[info_jobname['periodicidad']]})], con la de la malla a la que pertenece[{malla.periodicidad}]", 'W')
 
 
 def application(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -69,14 +70,16 @@ def application(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     info_app = job.get_info_application()
 
     if info_app is None:
-        cr.add_item(job.name, f"La application [{job.app}] no es la correcta.")
+        cr.add_item(job.name, f"La application [{job.app}] no cumple la nomenclatura estandar.", 'E')
         return
 
     if info_app['uuaa'] != malla.uuaa:
-        cr.add_item(job.name, f"No coincide la uuaa de la application [{info_app['uuaa']}] con la de la malla [{malla.uuaa}]")
+        cr.add_item(job.name, f"No coincide la uuaa de la application [{info_app['uuaa']}] con la de la malla [{malla.uuaa}]", 'E')
 
     if info_app['pais'] != 'AR':
-        cr.add_item(job.name, f"Para la application [{job.app}], el pais [{info_app['pais']}] debería ser [AR]")
+        cr.add_item(job.name, f"Para la application [{job.app}], el pais [{info_app['pais']}] debería ser [AR]", 'E')
+
+    # TODO: Info 'app' creo que seguía un estandar
 
 
 def subapp(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -89,10 +92,10 @@ def subapp(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     """
 
     if not job.subapp.startswith('DATIO-AR-'):
-        cr.add_item(job.name, f"La subapplication no comienza con DATIO-AR, valor obtenido [{job.subapp}]")
+        cr.add_item(job.name, f"La subapplication no comienza con DATIO-AR, valor obtenido [{job.subapp}]", 'E')
 
     if 'CCR' not in job.subapp:
-        cr.add_item(job.name, f"La subapplication no contiene la palabra clave [CCR], valor obtenido [{job.subapp}]")
+        cr.add_item(job.name, f"La subapplication no contiene la palabra clave [CCR], valor obtenido [{job.subapp}]", 'E')
 
 
 def atributos(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -106,7 +109,7 @@ def atributos(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     """
 
     if not job.jobname_valido():
-        cr.add_item(job.name, f"No se puede analizar sus atributos debido a que el jobname [{job.name}] no cumple con el estandar. Corregir este error antes de pasar a producción.")
+        cr.add_item(job.name, f"No se puede analizar sus atributos debido a que el jobname [{job.name}] no cumple con el estandar. Corregir este error antes de pasar a producción.", 'E')
         return
     else:
         info_jobname = job.get_info_jobname()
@@ -114,19 +117,19 @@ def atributos(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     for key_atributo, val_atritubo in job.atributos.items():
 
         if job.atributos == 'DESCRIPTION' and val_atritubo.strip() == '':
-            cr.add_item(job.name, f"La descripción no puede estar vacía")
+            cr.add_item(job.name, f"La descripción no puede estar vacía", 'E')
 
         if key_atributo == 'MAXWAIT':
             # Mensuales tienen que tener keepActive en 7
             if info_jobname['periodicidad'] == '4' and info_jobname['tipo'] != 'W' and val_atritubo != '7':
-                cr.add_item(job.name, f"Al ser mensual debe tener su Keep Active en 7, valor obtenido: [{val_atritubo}]")
+                cr.add_item(job.name, f"Al ser mensual debe tener su Keep Active en 7, valor obtenido: [{val_atritubo}]", 'E')
 
             # Diarias keepActive en 3
             if info_jobname['periodicidad'] == '0' and info_jobname['tipo'] != 'W' and val_atritubo != '3':
-                cr.add_item(job.name, f"Los jobs diarios deben tener su Keep Active en 3, valor obtenido: [{val_atritubo}]")
+                cr.add_item(job.name, f"Los jobs diarios deben tener su Keep Active en 3, valor obtenido: [{val_atritubo}]", 'E')
 
         if key_atributo == 'PARENT_FOLDER' and val_atritubo != malla.name:
-            cr.add_item(job.name, f"No coincide la malla 'padre' del job {val_atritubo} con la malla que se encuentra en el xml {malla.name}. Indagar al desarrollador sobre esto debido a que implica una manipulación manual del xml exportado")
+            cr.add_item(job.name, f"No coincide la malla 'padre' del job [{val_atritubo}] con la malla que se encuentra en el xml [{malla.name}]", 'E')
 
 
 def variables(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -138,93 +141,21 @@ def variables(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     :param cr: Recorder encargado de logear los controles fallidos
     """
 
-    # TODO: Estas son variables, que algunos jobs las dejan vacías. No es un error y no tengo idea del proceso
-    #   que ejecutan, pero las voy a hardcodear hasta que se comprenda bien por qué pueden ir vacías.
-    variables_vacias_validas = [
-        'FORMATO_UNO',
-        'FORMATO_DOS',
-        'CARPETA_SIN_FECHA',
-        'PRIMERA_PARTE_CARPETA_SIN_FECHA',
-        'SEGUNDA_PARTE_CARPETA_SIN_FECHA'
-    ]
-
-    # Nombres reservados no permitidos por el estandar, ver https://ctm.bancolombia.com/help/CTMHelp/en-US/Documentation/Variables.htm
-    variables_no_permitidas = [
-        # Generales del sistema
-        'APPLIC',
-        'APPLGROUP',
-        'CYCLIC',
-        '$FOLDER_ID',
-        'GROUP_ORDID',
-        '$GROUP_ORDID',
-        'JOBNAME',
-        'MEMLIB',
-        'ORDERID',
-        'OWNER',
-        'RUNCOUNT',
-        'SCHEDTAB',
-        'SMART_ORDERID',
-        '$SMART_ORDERID',
-        '$TABLE_ID',
-
-        # Las resueltas en tiempo de ejecucion
-        '$DATE',
-        '$YEAR',
-        'MONTH',
-        'OWDAY',
-        'RMONTH',
-        'YEAR',
-        '$ODATE',
-        'CENT',
-        'ODATE',
-        'OYEAR',
-        'RWDAY',
-        'OMONNAM',
-        '$OYEAR',
-        'DATE',
-        'ODAY',
-        'RDATE',
-        'RYEAR',
-        'RMONNAM',
-        '$RDATE',
-        'DAY',
-        'OJULDAY',
-        'RDAY',
-        'TIME',
-        'MONNAM',
-        '$RYEAR',
-        'JULDAY',
-        'OMONTH',
-        'RJULDAY',
-        'WDAY'
-    ]
-
-    existe_tabla = False
-    tabla_keys_posibles = ['TABLENAME', 'TABLE_NAME', 'TABLE', 'TABLA']
-
-    # realizamos controles puntuales sobre las variables
     for var_key, var_value in job.variables.items():
         var_key = var_key.replace('%%', '')
 
-        if (var_key in tabla_keys_posibles and var_value.startswith(f't_')) or 't_' in job.atributos['DESCRIPTION']:
-            existe_tabla = True
-
         match_dataproc_namespace = re.search(Regex.DATAPROC_NAMESPACE, utils.oofstr(var_value))
         if match_dataproc_namespace is not None and match_dataproc_namespace.group('ambiente') == 'dev':
-            cr.add_item(job.name, f"Existe un namespace de DESARROLLO [{var_value}] en la variable [{var_key}]")
+            cr.add_item(job.name, f"Existe un namespace de DESARROLLO [{var_value}] en la variable [{var_key}]", 'E')
 
-        if var_key in variables_no_permitidas:
-            cr.add_item(job.name, f"La variable [{var_key}] valor [{var_value}] reemplaza la variable %%{variables_no_permitidas[variables_no_permitidas.index(var_key)]} definida y reservada por el sistema, esto no es permitido por el estandar")
+        if var_key in VARIABLES_NO_PERMITIDAS:
+            cr.add_item(job.name, f"La variable [{var_key}] valor [{var_value}] reemplaza la variable %%{VARIABLES_NO_PERMITIDAS[VARIABLES_NO_PERMITIDAS.index(var_key)]} definida y reservada por el sistema, esto no es permitido por el estandar", 'E')
 
-        if utils.oofstr(var_value).strip() == '' and var_key not in variables_vacias_validas:
-            cr.add_item(job.name, f"La variable [{var_key}] está vacía")
+        if utils.oofstr(var_value).strip() == '' and var_key not in VARIABLES_VACIAS_VALIDAS:
+            cr.add_item(job.name, f"La variable [{var_key}] está vacía", 'W')
 
-        # TODO: Comento porque da muchos falsos positivos, revisar si vale la pena realmente verificar esto
-        # if not var_key.isupper():
-        #     cr.add_item(job.name, f"La variable [{var_key}] tiene minusculas, no está permitido por el estandar")
-
-    # if not existe_tabla:
-    #     cr.add_item_listado_general('tabla_identificadora', job.name)
+        if not var_key.isupper():
+            cr.add_item(job.name, f"La variable [{var_key}] tiene minusculas, no está permitido por el estandar", 'W')
 
     datapros_encontrados = []  # Un job no puede tener dos datapros
     for var_key, var_value in job.variables.items():
@@ -232,8 +163,8 @@ def variables(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
         if match_dataproc is not None:
             datapros_encontrados.append(match_dataproc)
 
-    if len(datapros_encontrados) > 1:
-        cr.add_listado(job.name, f"Se encontraron [{len(datapros_encontrados)}] dataprocs para un mismo job, revisar si esto es correcto ya que debería estar definido una sola vez", [m.group(0) for m in datapros_encontrados])
+    if len(set([m.group(0) for m in datapros_encontrados])) > 1:
+        cr.add_listado(job.name, f"Se encontraron [{len(datapros_encontrados)}] dataprocs para un mismo job, revisar si esto es correcto ya que debería estar definido una sola vez", [m.group(0) for m in datapros_encontrados], 'W')
 
     # Validamos que todas las variables declaradas estén en uso. Una variable se puede usar en el asunto de un
     # mail, en el command o en otras variables. Las volvermos a recorrer
@@ -263,8 +194,9 @@ def variables(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
                 if action.id == 'DOMAIL' and any([var_key in atr for atr in action.attrs.values()]):
                     variable_usada = True
 
+        # TODO: AGREGAR LO DE LAS VARIABLES OBLIGATORIAS QUE NO PASA NADA SI NO SE USAN
         if not variable_usada:
-            cr.add_item(job.name, f"La variable [{var_key}] valor [{job.variables[var_key]}] está declarada pero no está siendo usada")
+            cr.add_item(job.name, f"La variable [{var_key}] valor [{job.variables[var_key]}] está declarada pero no está siendo usada", 'W')
 
 
 def marcas_in(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -278,31 +210,31 @@ def marcas_in(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     """
 
     if not job.jobname_valido():
-        cr.add_item(job.name, f"No se puede controlar los prerequisitos debido a que el jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción.")
+        cr.add_item(job.name, f"No se puede controlar los prerequisitos debido a que el jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción.", 'E')
         return
     else:
         info_jobname = job.get_info_jobname()
 
     duplis = utils.encontrar_duplicados(job.get_prerequisitos())
     if duplis:
-        cr.add_item(job.name, f"Existen prerequisitos duplicados: {duplis}")
+        cr.add_item(job.name, f"Existen prerequisitos duplicados: {duplis}", 'E')
 
     for marca in job.marcasin:
 
         if not marca.es_valida():
-            cr.add_item(job.name, f"El prerequisito [{str(marca)}] está mal formado")
+            cr.add_item(job.name, f"El prerequisito [{str(marca)}] no cumple la nomenclatura estandar", 'E')
             continue
 
         if marca.destino != job.name:
-            cr.add_item(job.name, f"Para El prerequisito [{str(marca)}] no coincide el job de DESTINO [{marca.destino}] con el que pertenece [{job.name}]")
+            cr.add_item(job.name, f"Para el prerequisito [{str(marca)}] no coincide el job de DESTINO [{marca.destino}] con el que pertenece [{job.name}]", 'E')
 
         info_jobname_origen = marca.get_info_origen()
         if (
                 marca.origen not in malla.jobnames() and
-                info_jobname_origen['uuaa'] == malla.uuaa and
-                info_jobname_origen['periodicidad'] != info_jobname['periodicidad']
+                info_jobname_origen['uuaa'] == info_jobname['uuaa'] and
+                info_jobname_origen['periodicidad'] == info_jobname['periodicidad']
         ):
-            cr.add_item(job.name, f"El job de ORIGEN [{marca.origen}] de el prerequisito [{marca.name}] no se encuentra en la malla y no pertenece a otra malla")
+            cr.add_item(job.name, f"El job de ORIGEN [{marca.origen}] de el prerequisito [{marca.name}] no se encuentra en la malla", 'E')
 
 
 def marcas_out(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -316,48 +248,52 @@ def marcas_out(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     """
 
     if not job.jobname_valido():
-        cr.add_item(job.name, f"No se puede controlar las marcas out debido a que el jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción.")
+        cr.add_item(job.name, f"No se puede controlar las marcas out debido a que el jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción", 'E')
         return
     else:
         info_jobname = job.get_info_jobname()
 
     duplis = utils.encontrar_duplicados(job.get_prerequisitos())
     if duplis:
-        cr.add_item(job.name, f"Existen marcas OUT duplicadas: {duplis}")
+        cr.add_item(job.name, f"Existen marcas OUT duplicadas: {duplis}", 'E')
 
     for marca in job.marcasout:
 
         if not marca.es_valida():
-            cr.add_item(job.name, f"La marca OUT [{str(marca)}] está mal formada")
+            cr.add_item(job.name, f"La marca OUT [{str(marca)}] no cumple la nomenclatura estandar", 'E')
             continue
 
         info_jobname_origen = marca.get_info_origen()
         info_jobname_destino = marca.get_info_destino()
 
         if info_jobname_origen is None or info_jobname_destino is None:
-            cr.add_item(job.name, f"La marca OUT [{str(marca)}], tiene jobnames que no cumplen con el estandar. RESOLVER EL CONFLICTO Y NO DEJAR PASAR ESTO")
+            cr.add_item(job.name, f"La marca OUT [{str(marca)}], tiene jobnames que no cumplen con la nomenclatura estandar", 'E')
             continue
 
         if marca.signo == '-':
 
             if marca.destino != job.name:
-                cr.add_item(job.name, f"El job de DESTINO [{marca.destino}] de la marca OUT [{str(marca)}] debería ser [{job.name}] ya que ELIMINA marca")
+                cr.add_item(job.name, f"El job de DESTINO [{marca.destino}] de la marca OUT [{str(marca)}] debería ser [{job.name}] ya que ELIMINA marca", 'E')
 
             # El job de origen tiene que existir en la malla si pertenece a la misma uuaa
-            if (marca.origen not in malla.jobnames()
-                    and info_jobname_origen['uuaa'] == malla.uuaa
-                    and info_jobname_origen['periodicidad'] != info_jobname['periodicidad']):
-                cr.add_item(job.name, f"El job de ORIGEN [{marca.origen}] de la marca OUT [{str(marca)}] no se encuentra en la malla y no pertenece a otra malla")
+            if (
+                    marca.origen not in malla.jobnames()
+                    and info_jobname_origen['uuaa'] == info_jobname['uuaa']
+                    and info_jobname_origen['periodicidad'] == info_jobname['periodicidad']
+            ):
+                cr.add_item(job.name, f"El job de ORIGEN [{marca.origen}] de la marca OUT [{str(marca)}] no se encuentra en la malla", 'E')
 
         elif marca.signo == '+':
 
             if marca.origen != job.name:
-                cr.add_item(job.name, f"El job de ORIGEN [{marca.origen}] de la marca OUT [{str(marca)}] debería ser [{job.name}] ya que AGREGA marca")
+                cr.add_item(job.name, f"El job de ORIGEN [{marca.origen}] de la marca OUT [{str(marca)}] debería ser [{job.name}] ya que AGREGA marca", 'E')
 
-            if (marca.destino not in malla.jobnames()
-                    and info_jobname_destino['uuaa'] == malla.uuaa
-                    and info_jobname_destino['periodicidad'] != info_jobname['periodicidad']):
-                cr.add_item(job.name, f"El job de DESTINO [{marca.destino}] de la marca OUT [{str(marca)}] no se encuentra en la malla y no pertenece a otra malla")
+            if (
+                    marca.destino not in malla.jobnames()
+                    and info_jobname_destino['uuaa'] == info_jobname['uuaa']
+                    and info_jobname_destino['periodicidad'] == info_jobname['periodicidad']
+            ):
+                cr.add_item(job.name, f"El job de DESTINO [{marca.destino}] de la marca OUT [{str(marca)}] no se encuentra en la malla", 'E')
 
     for marca_in in job.marcasin:
         se_elimina = False
@@ -367,7 +303,7 @@ def marcas_out(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
                 se_elimina = True
 
         if not se_elimina:
-            cr.add_item(job.name, f"El prerequisito [{str(marca_in)}] no se elimina")
+            cr.add_item(job.name, f"El prerequisito [{str(marca_in)}] no se elimina", 'E')
 
 
 def _subcontrol_mail(job: ControlmJob, action: ControlmAction, code: str, malla: ControlmFolder, reglas: dict, cr: ControlRecorder):
@@ -383,6 +319,8 @@ def _subcontrol_mail(job: ControlmJob, action: ControlmAction, code: str, malla:
     :param cr: Recorder que guardará los controles fallidos
     """
 
+    codigo_traducido = ControlmJob.traducir_codigo_finalizacion(code)
+
     dest: str = action.attrs['DEST']
     if '%%' in dest:
         dest = job.expandir_string(dest)
@@ -396,10 +334,10 @@ def _subcontrol_mail(job: ControlmJob, action: ControlmAction, code: str, malla:
     for destinatario in lista_mails:
 
         if destinatario != 'datio-procesos-live.group@bbva.com':
-            cr.add_item(job.name, f"El mail cuando termina [{code}] es [{destinatario}], debería enviarse a [datio-procesos-live.group@bbva.com]")
+            cr.add_item(job.name, f"El mail cuando termina [{codigo_traducido}] es [{destinatario}], debería enviarse a [datio-procesos-live.group@bbva.com]", 'E')
 
         if re.search(Regex.MAILS, destinatario) is None:
-            cr.add_item(job.name, f"El mail del receptor cuando termina [{code}] es [{destinatario}], no parece ser un mail válido")
+            cr.add_item(job.name, f"El mail del receptor cuando termina [{codigo_traducido}] es [{destinatario}], no parece ser un mail válido", 'E')
 
     try:
         destinatario_cc = action.attrs['CC_DEST']
@@ -411,32 +349,32 @@ def _subcontrol_mail(job: ControlmJob, action: ControlmAction, code: str, malla:
             destinatario_cc = job.expandir_string(destinatario_cc)
 
         if destinatario_cc is None or re.search(Regex.MAILS, destinatario_cc) is None:
-            cr.add_item(job.name, f"El mail de CC cuando termina [{code}] es [{destinatario_cc}], no parece ser un mail válido")
+            cr.add_item(job.name, f"El mail de CC cuando termina [{codigo_traducido}] es [{destinatario_cc}], no parece ser un mail válido", 'W')
 
     if action.attrs['ATTACH_SYSOUT'] != 'Y' and action.attrs['ATTACH_SYSOUT'] != 'D':
-        cr.add_item(job.name, f"El mail de CC cuando termina [{code}] no adjunta su SYSOUT (output)")
+        cr.add_item(job.name, f"El mail de CC cuando termina [{codigo_traducido}] no adjunta su SYSOUT (output)", 'E')
 
     try:
         asunto = action.attrs['SUBJECT']
     except KeyError:
-        cr.add_item(job.name, f"El mail cuando termina [{code}] no tiene asunto")
+        cr.add_item(job.name, f"El mail cuando termina [{codigo_traducido}] no tiene asunto", 'E')
     else:
         if '%%' in asunto:
             asunto = job.expandir_string(asunto)
 
             if len(asunto) > 99:
-                cr.add_item(job.name, f"El mail cuando termina [{code}] no se enviará debido a que su asunto tiene [{len(asunto)}] caracteres, supera los 99 caracteres. Valor obtenido: [{asunto}]")
+                cr.add_item(job.name, f"El mail cuando termina [{codigo_traducido}] no se enviará debido a que su asunto tiene [{len(asunto)}] caracteres, supera los 99 caracteres. Valor obtenido: [{asunto}]", 'E')
 
         if job.name not in asunto:
-            cr.add_item(job.name, f"El mail cuando termina [{code}] no informa el JOBNAME en el asunto, que es [{asunto}]")
+            cr.add_item(job.name, f"El mail cuando termina [{codigo_traducido}] no informa el JOBNAME en el asunto, que es [{asunto}]", 'W')
 
             cuerpo = action.attrs.get('MESSAGE')
             if '%%' in cuerpo:
                 cuerpo = job.expandir_string(cuerpo)
             if cuerpo is None:
-                cr.add_item(job.name, f"El mail cuando termina [{code}] no tiene un mensaje en su cuerpo.")
+                cr.add_item(job.name, f"El mail cuando termina [{codigo_traducido}] no tiene un mensaje en su cuerpo.", 'W')
             elif job.name not in cuerpo:
-                cr.add_item(job.name, f"El mail cuando termina [{code}] TAMPOCO informa el JOBNAME en el cuerpo, que es [{cuerpo}]... media pila loco >:(")
+                cr.add_item(job.name, f"El mail cuando termina [{codigo_traducido}] tampoco informa el JOBNAME en el cuerpo del mail, que es [{cuerpo}]", 'W')
 
     # OK y retorno 0 es lo mismo, el job ejecutó exitosamente sin error
     if code == 'OK' or 'COMPSTAT EQ 0':
@@ -468,26 +406,27 @@ def _subcontrol_cond(job: ControlmJob, action: ControlmAction, code: str, malla:
     :param cr: Recorder que guardará los controles fallidos
     """
 
+    codigo_traducido = ControlmJob.traducir_codigo_finalizacion(code)
     marca = ControlmMarcaOut(marca_nombre=action.attrs['NAME'], odate_esperado=action.attrs['ODATE'], signo=action.attrs['SIGN'])
-    intro = f"La marca [{str(marca)}] mediante accion [{action.id}] con código [{code}]"
+    intro = f"La marca [{str(marca)}] mediante accion [{action.traducir_id()}] con código [{codigo_traducido}]"
 
     # Acá va a haber codigo repetido de las marcas out, así son las cosas che
     if not marca.es_valida():
-        cr.add_item(job.name, f"{intro}, no es una marca válida")
+        cr.add_item(job.name, f"{intro}, no es una marca válida", 'E')
 
     if marca.signo == '+':
         if marca.destino not in malla.jobnames():
-            cr.add_item(job.name, f"{intro}, el jobname de DESTINO [{marca.destino}] no existe en la malla")
+            cr.add_item(job.name, f"{intro}, el jobname de DESTINO [{marca.destino}] no existe en la malla", 'E')
 
         if marca.origen != job.name:
-            cr.add_item(job.name, f"{intro}, el jobname de PARTIDA [{marca.origen}] debería ser [{job.name}] ya que AGREGA marca")
+            cr.add_item(job.name, f"{intro}, el jobname de ORIGEN [{marca.origen}] debería ser [{job.name}] ya que AGREGA marca", 'E')
 
     if marca.signo == '-':
         if marca.origen not in malla.jobnames():
-            cr.add_item(job.name, f"{intro}, el jobname de PARTIDA [{marca.origen}] no existe en la malla")
+            cr.add_item(job.name, f"{intro}, el jobname de ORIGEN [{marca.origen}] no existe en la malla", 'E')
 
         if marca.destino != job.name:
-            cr.add_item(job.name, f"{intro}, el jobname de DESTINO [{marca.destino}] debería ser [{job.name}] ya que QUITA marca")
+            cr.add_item(job.name, f"{intro}, el jobname de DESTINO [{marca.destino}] debería ser [{job.name}] ya que QUITA marca", 'E')
 
     # Si un FW retorna 0, quiere decir que encontró archivo, ver si el job al que le deja marca está ok
     if code == 'COMPSTAT EQ 0' and job.es_filewatcher():
@@ -508,8 +447,9 @@ def _subcontrol_doaction(job: ControlmJob, action: ControlmAction, code: str, ma
     :param cr: Recorder que guardará los controles fallidos
     """
 
+    codigo_traducido = ControlmJob.traducir_codigo_finalizacion(code)
     if code == '*{"id":"SUCCESS","name":"SUCCESS"}*' and action.attrs['ACTION'] != 'OK':
-        cr.add_item(job.name, f"El job no se setea OK cuando termina con código [{code}]")
+        cr.add_item(job.name, f"El job no se setea OK cuando termina con código [{codigo_traducido}]", 'W')
 
     if job.es_filewatcher():
 
@@ -536,22 +476,23 @@ def _subcontrol_forcejob(job: ControlmJob, action: ControlmAction, code: str, ma
     :param cr: Recorder que guardará los controles fallidos
     """
 
-    intro = f"Bajo la condicion [{code}]"
+    codigo_traducido = ControlmJob.traducir_codigo_finalizacion(code)
+    intro = f"Bajo la condicion [{codigo_traducido}]"
 
     if action.attrs['TABLE_NAME'] != malla.name:
-        cr.add_item(job.name, f"{intro}, el job ordena con force a otro job de otra malla [{action.attrs['TABLE_NAME']}]")
+        cr.add_item(job.name, f"{intro}, el job ordena con force a otro job de otra malla [{action.attrs['TABLE_NAME']}]", 'E')
 
     if action.attrs['NAME'] not in malla.jobnames():
-        cr.add_item(job.name, f"{intro}, el job ordena con force a otro job [{action.attrs['NAME']}] que no existe en la malla [{malla.name}]")
+        cr.add_item(job.name, f"{intro}, el job ordena con force a otro job [{action.attrs['NAME']}] que no existe en la malla [{malla.name}]", 'E')
 
     if action.attrs['ODATE'] != 'ODAT':
-        cr.add_item(job.name, f"{intro}, el job ordena con force a otro [{action.attrs['NAME']}] con un ODATE distinto al permitido por el estandar [{action.attrs['ODATE']}]")
+        cr.add_item(job.name, f"{intro}, el job ordena con force a otro [{action.attrs['NAME']}] con un ODATE distinto al permitido por el estandar [{action.attrs['ODATE']}]", 'E')
 
     if action.attrs['REMOTE'] != 'N':
-        cr.add_item(job.name, f"{intro}, el job ordena con force a otro [{action.attrs['NAME']}] con un REMOTE distinto al permitido por el estandar [{action.attrs['REMOTE']}] Valor esperado [N] (Esto no va a planificar los jobs con force)")
+        cr.add_item(job.name, f"{intro}, el job ordena con force a otro [{action.attrs['NAME']}] con un REMOTE distinto al permitido por el estandar [{action.attrs['REMOTE']}] Valor esperado [N] (Esto no va a planificar los jobs con force)", 'E')
 
     if action.attrs.get('DATACENTER') is not None:
-        cr.add_item(job.name, f"{intro}, el job ordena con force a otro [{action.attrs['NAME']}] con un DATACENTER, NO debería tenerlo (Esto no va a planificar los jobs con force)")
+        cr.add_item(job.name, f"{intro}, el job ordena con force a otro [{action.attrs['NAME']}] con un DATACENTER, NO debería tenerlo (Esto no va a planificar los jobs con force)", 'E')
 
 
 def _subcontrol_doshout(job: ControlmJob, action: ControlmAction, code: str, malla: ControlmFolder, reglas: dict, cr: ControlRecorder):
@@ -568,12 +509,13 @@ def _subcontrol_doshout(job: ControlmJob, action: ControlmAction, code: str, mal
     :param cr: Recorder que guardará los controles fallidos
     """
 
+    codigo_traducido = ControlmJob.traducir_codigo_finalizacion(code)
     if job.es_ruta_critica():
 
         reglas['rc_doshout'][0] = True
 
         if code != 'NOTOK':
-            cr.add_item(job.name, f"El job es de RC y está enviando un alertamiento cuando finaliza [{code}], el alertamiento corresponde cuando termina [NOT OK]")
+            cr.add_item(job.name, f"El job es de RC y está enviando un alertamiento cuando finaliza [{codigo_traducido}], el alertamiento corresponde cuando termina [NOT OK]", 'E')
 
         if action.attrs['URGENCY'] == 'U':
             reglas['rc_doshout_urgente'][0] = True
@@ -582,7 +524,7 @@ def _subcontrol_doshout(job: ControlmJob, action: ControlmAction, code: str, mal
             mensaje_correcto = "Ruta Critica, escalar a Aplicativo"
             coeficiente_diferencia = SequenceMatcher(a=mensaje_correcto, b=action.attrs['MESSAGE']).ratio()
             if coeficiente_diferencia < 0.85:  # Falopa, lo se. Pero funciona
-                cr.add_item(job.name, f"El job es de RC y el mensaje de su alertamiento no es el correcto [{action.attrs['MESSAGE']}], debería ser [{mensaje_correcto}]")
+                cr.add_item(job.name, f"El job es de RC y el mensaje de su alertamiento no es el correcto [{action.attrs['MESSAGE']}], debería ser [{mensaje_correcto}]", 'E')
 
 
 def acciones(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -610,7 +552,7 @@ def acciones(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
     :param cr: Recorder que se encargará de guardar los controles fallidos
     """
     if not job.jobname_valido():
-        cr.add_item(job.name, f"No se pueden analizar las acciones porque el jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción.")
+        cr.add_item(job.name, f"No se pueden analizar las acciones porque el jobname {job.name} no cumple con el estandar. Corregir este error antes de pasar a producción.", 'E')
         return
 
     reglas_generales = {
@@ -631,8 +573,6 @@ def acciones(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
         reglas_generales['rc_doshout'] = [False, "El job es de RC y NO PROPORCIONA un alertamiento cuando finaliza [NOTOK]"]
         reglas_generales['rc_doshout_urgente'] = [False, "El job es de RC y su mensaje de alertamiento no tiene la prioridad máxima (URGENT)"]
 
-    # En vez de hacer if's para saber qué métodos ejecutar, que se haga de forma polimórfica
-    # Se ejecutará en base al id de la accion
     mapeo_acciones_subcontroles = {
         'DOMAIL': _subcontrol_mail,
         'DOCOND': _subcontrol_cond,
@@ -648,12 +588,12 @@ def acciones(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
                 # Ejecutamos el control sobre la accion
                 control(job, accion, condicion, malla, reglas_generales, cr)
             else:
-                cr.add_item(job.name, f"Accion no contemplada [{accion.id}]. Contactar con Solutions.")
+                cr.add_item(job.name, f"Accion no contemplada [{accion.id}]. Contactar con Solutions para agregarla a las validaciones", 'W')
 
     # Cada regla fallida es informada
     for value in reglas_generales.values():
         if not value[0]:
-            cr.add_item(job.name, value[1])
+            cr.add_item(job.name, value[1], 'W')
 
 
 def recursos_cuantitativos(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -683,13 +623,13 @@ def recursos_cuantitativos(job: ControlmJob, malla: ControlmFolder, cr: ControlR
 
         seccion: str
         if not all([seccion.isupper() or seccion.isalnum() for seccion in recurso.seccionar()]):
-            cr.add_item(job.name, f"El recurso [{recurso.name}] no parece seguir el estandar defindo (caracteres o 'forma' no permitidos)")
+            cr.add_item(job.name, f"El recurso [{recurso.name}] no parece seguir el estandar defindo (caracteres o 'forma' no permitidos)", 'E')
 
     if not generico_encontrado:
-        cr.add_item(job.name, f"No se encuentra el recurso cuantitativo por defecto ARD")
+        cr.add_item(job.name, f"No se encuentra el recurso cuantitativo por defecto ARD", 'E')
 
     if not rrcc_stg_correcto:
-        cr.add_item(job.name, f"El job es [{job.tipo}P] ({job.tipo_descripcion}) y no se encuentra el recurso cuantitativo ARD-STG")
+        cr.add_item(job.name, f"El job es [{job.tipo}P] ({job.tipo_descripcion}) y no se encuentra el recurso cuantitativo ARD-STG", 'E')
 
 
 def tipo(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
@@ -706,26 +646,26 @@ def tipo(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
 
         case 'C' | 'V' | 'S' | 'B':
             if job.command is None or job.command == '' or not job.command.startswith('/opt/datio/sentry-ar/dataproc_sentry.py'):
-                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta el comando de dataproc_sentry.py correspondiente. Valor obtenido [{job.command}]")
+                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta el comando de dataproc_sentry.py correspondiente. Valor obtenido [{job.command}]", 'W')
             if job.fase is None:
-                cr.add_item(job.name, f"El job es {tipo_verbose}, pero esto no se ve reflejado en su dataproc id, no se pudo inferir sobre qué fase actúa [{job.dataproc_id}]")
+                cr.add_item(job.name, f"El job es {tipo_verbose}, pero esto no se ve reflejado en su dataproc id, no se pudo inferir sobre qué fase actúa [{job.dataproc_id}]", 'W')
 
         case 'W':
             if job.command is None or job.command == '' or not (job.command.startswith('ctmfw') or job.command.startswith('epsilon-watch')):
-                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta el comando de correspondiente a los filewatchers (ctmfw o epsilon-watch). Valor obtenido [{job.command}]")
+                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta el comando de correspondiente a los filewatchers (ctmfw o epsilon-watch). Valor obtenido [{job.command}]", 'W')
 
         case 'T':
             nombre_script = job.atributos.get('MEMNAME')
             if nombre_script is not None and not nombre_script.endswith('.sh'):
-                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta un script sh. Valor obtenido [{job.command}]")
+                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta un script .sh Valor obtenido [{job.command}]", 'W')
 
         case 'P':
             if job.es_spark_compactor():
                 if job.command is None or job.command == '' or not job.command.startswith('/opt/datio/sentry-ar/dataproc_sentry.py'):
-                    cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta el comando de dataproc_sentry.py correspondiente. Valor obtenido [{job.command}]")
+                    cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta el comando de dataproc_sentry.py correspondiente. Valor obtenido [{job.command}]", 'E')
 
             elif not job.es_tpt():
-                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta un script multi_tpt.sh. Valor obtenido [{job.command}]")
+                cr.add_item(job.name, f"El job es {tipo_verbose} y no ejecuta un script multi_tpt.sh", 'E')
 
         case _:
             pass  # TODO: Ver los casos no contemplados
@@ -753,18 +693,18 @@ def tipo(job: ControlmJob, malla: ControlmFolder, cr: ControlRecorder):
                 discrepancia_datapros = True
 
         case 'W' | 'T':
-            cr.add_item(job.name, f"El job es [{tipo_verbose}] y se encontró un dataproc en el mismo [{job.dataproc_id}], no debería tenerlo por su tipo")
+            cr.add_item(job.name, f"El job es [{tipo_verbose}] y se encontró un dataproc en el mismo [{job.dataproc_id}], no debería tenerlo por su tipo", 'E')
 
         case 'P':
             if not job.es_spark_compactor():
-                cr.add_item(job.name, f"El job es [{tipo_verbose}] y se encontró un dataproc en el mismo [{job.dataproc_id}], no debería tenerlo por su tipo")
+                cr.add_item(job.name, f"El job es [{tipo_verbose}] y se encontró un dataproc en el mismo [{job.dataproc_id}], no debería tenerlo por su tipo", 'E')
 
         case _:
-            cr.add_item(job.name, f"No se pudo controlar el dataproc del Job [{job.dataproc_id}] debido a que tiene un tipo desconocido [{job.tipo}]")
+            cr.add_item(job.name, f"No se pudo controlar el dataproc del Job [{job.dataproc_id}] debido a que tiene un tipo desconocido [{job.tipo}]", 'W')
 
     if discrepancia_datapros:
         mensaje = f"Segun su tipo [{job.tipo}], el job es [{tipo_verbose}] pero esto no se ve reflejado su dataproc job id [{job.dataproc_id}]"
-        cr.add_item(job.name, mensaje)
+        cr.add_item(job.name, mensaje, 'W')
 
 
 def cadena_smart_cleaner(malla: ControlmFolder, cr: ControlRecorder):
@@ -802,11 +742,10 @@ def cadena_smart_cleaner(malla: ControlmFolder, cr: ControlRecorder):
             if contador_instancias_ingesta[fase] > contador_instancias_borradosm[fase]:
                 diferencia = contador_instancias_ingesta[fase] - contador_instancias_borradosm[fase]
                 mensaje = f"Para la cadena {cadena}, existen más jobs de ingesta en {fase} [{contador_instancias_ingesta[fase]}] que smart cleaners de {fase} [{contador_instancias_borradosm[fase]}]. Faltarían [{diferencia}] SP's de {fase}"
-                cr.add_item(recorder_key, mensaje)
+                cr.add_item(recorder_key, mensaje, 'W')
 
 
 def verificar_variables_nuevas(job: ControlmJob, cr: ControlRecorder):
-
     """
     Verifica que, si hay jobs nuevos en la malla, estos contengan estas 6 nuevas variables: ORIGEN, TABLA_ORIGEN, TABLA, TRANSFER_ID, XCOM, FORMATEADOR. Las 3 ultimas, solo si son FW o TP.
     Solo verifica que estas variables existan, no se fija en su contenido
@@ -845,23 +784,24 @@ def verificar_variables_nuevas(job: ControlmJob, cr: ControlRecorder):
     }
 
     variables_generales_no_encontradas, _ = validar_variables_nuevas(job, variables_nuevas_obligatorias)
-    variables_fw_tp_no_encontradas, _ = validar_variables_nuevas(job, variables_nuevas_obligatorias_fw_tp)
-
+    variables_fw_tp_no_encontradas, variables_fw_tp_encontradas = validar_variables_nuevas(job, variables_nuevas_obligatorias_fw_tp)
     if len(variables_generales_no_encontradas) > 0:
-        cr.add_listado(job.name, f"Las siguientes variables obligatorias nuevas no se encuentran en el job ",
-                       variables_generales_no_encontradas)
+        cr.add_listado(job.name, f"Las siguientes variables obligatorias nuevas no se encuentran en el job ", variables_generales_no_encontradas, 'E')
 
     if len(variables_fw_tp_no_encontradas) > 0:
 
-        if job.es_transmisiontp():
+        if job.es_transmisiontp() and job.command is not None:
+            if job.command.startswith('datax-agent'):
+                cr.add_listado(job.name, f"Al tratarse de un TP de Transmisión DataX, las siguientes variables no estan creadas ", variables_fw_tp_no_encontradas, 'E')
+            else:
+                if job.malla.digrafo.es_raiz(job.name):
+                    cr.add_listado(job.name, f"Este TP no es de Transmisión DataX y la cadena empieza por este job, las siguientes variables no están definidas en el: ", variables_fw_tp_no_encontradas, 'E')
+                else:
+                    cr.add_listado(job.name, f"Este TP no es de Transmisión DataX y tiene un FW previo, las siguientes variables deben estar definidas en su FW: ", variables_fw_tp_encontradas, 'E')
 
-            cr.add_listado(job.name, f"Al tratarse de un TP, las siguientes variables no estan creadas ",
-                           variables_fw_tp_no_encontradas)
-
-        elif job.es_filewatcher():
-
-            cr.add_listado(job.name, f"Al tratarse de un FW, las siguientes variables no estan creadas ",
-                           variables_fw_tp_no_encontradas)
+        elif job.es_filewatcher() and job.command is not None:
+            if not job.command.startswith('epsilon-watch'):
+                cr.add_listado(job.name, f"Al tratarse de un FW NO DataX, las siguientes variables no estan creadas ", variables_fw_tp_no_encontradas, 'E')
 
 
 def cadenas_global(digrafo_global: ControlmDigrafo, contenedor_global: ControlmContainer):
@@ -922,10 +862,7 @@ def tmp_parametros(malla_tmp: ControlmFolder, recorder: RecorderTmp):
     """
 
     if malla_tmp.order_method != 'PRUEBAS':
-        recorder.add_general(
-            f"El 'ORDER METHOD' de la malla no es el correcto. Esperado [PRUEBAS], obtenido [{malla_tmp.order_method}]")
+        recorder.add_general(f"El 'ORDER METHOD' de la malla no es el correcto. Esperado [PRUEBAS], obtenido [{malla_tmp.order_method}]")
 
     if malla_tmp.datacenter != 'CTM_CTRLMCCR':
-        recorder.add_general(
-            f"El servidor no es el correcto. Valor esperado [CTM_CTRLMCCR], obtenido [{malla_tmp.datacenter}]")
-
+        recorder.add_general(f"El servidor no es el correcto. Valor esperado [CTM_CTRLMCCR], obtenido [{malla_tmp.datacenter}]")

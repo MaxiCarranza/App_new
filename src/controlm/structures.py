@@ -109,6 +109,7 @@ class ControlmFolder:
         for job_element in self._base.findall(TagXml.JOB):
             try:
                 job_ctrlm = ControlmJob(job_element, self.filename)
+                job_ctrlm.malla = self
             except Exception as error_carga_job:
                 mensaje = f"Ocurrió un error inesperado al cargar la informacion del xml sobre el job [{job_element.get(TagXml.JOB_NAME)}] en la malla [{self.filename}]"
                 raise Exception(mensaje) from error_carga_job
@@ -169,8 +170,6 @@ class ControlmJob:
     Clase que representa un job de control M
     """
 
-    malla: ControlmFolder = None
-
     mapeo_jobtipo_descripcion = {
         'C': 'ingesta',
         'S': 'smart-cleaner',
@@ -193,6 +192,8 @@ class ControlmJob:
         :param xml_element: Elemento padre xml, es aquel que contiene el tag JOB
         :param filename: Nombre del archivo xml del cual se lee, se utiliza para informar en caso de error
         """
+
+        self.malla: [ControlmFolder | None] = None
 
         self.atributos: dict = {i[0]: i[1] for i in xml_element.items()}
 
@@ -588,6 +589,19 @@ class ControlmJob:
 
         return template
 
+    @staticmethod
+    def traducir_codigo_finalizacion(code: str):
+        """
+        Traduce al idioma de los humanos el código que viene en el XML. Por ej: Si viene COMPSTAT EQ 7, se debería
+        cambiar a RETORNO IGUAL 7
+
+        :param code: Codigo a traducir
+        :return: El string traducido
+        """
+        code = code.replace('COMPSTAT', 'RETORNO')
+        code = code.replace('EQ', 'IGUAL')
+        return code
+
 
 class ControlmMarcaIn:
     """
@@ -689,6 +703,14 @@ class ControlmAction:
     a casillas distintas con distintos mensajes.
     """
 
+    acciones_id_verbose = {
+        'DOMAIL': 'envio de mail',
+        'DOCOND': 'agregado de condicion',
+        'DOACTION': 'realizar operacion',
+        'DOFORCEJOB': 'force job',
+        'DOSHOUT': 'envio de notificacion'
+    }
+
     def __init__(self, action_id: str, attrs: dict):
         """
         Constructor
@@ -718,6 +740,12 @@ class ControlmAction:
                     resultado = False
 
         return resultado
+
+    def traducir_id(self):
+        """
+        TODO: docstring
+        """
+        return self.acciones_id_verbose.get(self.id, 'ACCION NO CONFIGURADA')
 
 
 class ControlmRecursoCuantitativo:

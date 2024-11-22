@@ -65,3 +65,64 @@ MAPEO_PERJOBNAME_PERMALLA = {
 }
 
 CONTACTO = 'ar-data-hub-solutions.group@bbva.com'
+
+# TODO: Estas son variables, que algunos jobs las dejan vacías. No es un error y no tengo idea del proceso
+#   que ejecutan, pero las voy a hardcodear hasta que se comprenda bien por qué pueden ir vacías.
+VARIABLES_VACIAS_VALIDAS = [
+    'FORMATO_UNO',
+    'FORMATO_DOS',
+    'CARPETA_SIN_FECHA',
+    'PRIMERA_PARTE_CARPETA_SIN_FECHA',
+    'SEGUNDA_PARTE_CARPETA_SIN_FECHA'
+]
+
+# Nombres reservados no permitidos por el estandar, ver https://ctm.bancolombia.com/help/CTMHelp/en-US/Documentation/Variables.htm
+VARIABLES_NO_PERMITIDAS = [
+    # Generales del sistema
+    'APPLIC',
+    'APPLGROUP',
+    'CYCLIC',
+    '$FOLDER_ID',
+    'GROUP_ORDID',
+    '$GROUP_ORDID',
+    'JOBNAME',
+    'MEMLIB',
+    'ORDERID',
+    'OWNER',
+    'RUNCOUNT',
+    'SCHEDTAB',
+    'SMART_ORDERID',
+    '$SMART_ORDERID',
+    '$TABLE_ID',
+
+    # Las resueltas en tiempo de ejecucion
+    '$DATE',
+    '$YEAR',
+    'MONTH',
+    'OWDAY',
+    'RMONTH',
+    'YEAR',
+    '$ODATE',
+    'CENT',
+    'ODATE',
+    'OYEAR',
+    'RWDAY',
+    'OMONNAM',
+    '$OYEAR',
+    'DATE',
+    'ODAY',
+    'RDATE',
+    'RYEAR',
+    'RMONNAM',
+    '$RDATE',
+    'DAY',
+    'OJULDAY',
+    'RDAY',
+    'TIME',
+    'MONNAM',
+    '$RYEAR',
+    'JULDAY',
+    'OMONTH',
+    'RJULDAY',
+    'WDAY'
+]
