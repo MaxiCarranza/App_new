@@ -18,7 +18,7 @@ buildOptions = {
 setup(
     name="Validador de mallas",
     version="0.1",
-    description="Validador de mallas relaiabiliti",
+    description="Validador de mallas Reliability - DataHub",
     options={'build_exe': buildOptions},
     executables=executables
 )

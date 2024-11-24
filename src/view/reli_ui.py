@@ -1,5 +1,6 @@
 
 import os
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 
@@ -10,7 +11,7 @@ except ImportError:
     messagebox.showerror(title="Error", message="No se pudo importar la librería PySide6, por favor ponerse en contacto con ar-data-hub-solutions.group@bbva.com")
 else:
     from PySide6.QtCore import Qt
-    from PySide6.QtGui import QPixmap, QIcon, QTextDocument
+    from PySide6.QtGui import QPixmap, QIcon, QTextDocument, QCursor
     from PySide6.QtWidgets import (QApplication, QMainWindow, QLabel, QGridLayout, QPushButton,
                                    QFileDialog, QMessageBox, QTextEdit, QWidget, QSpacerItem,
                                    QSizePolicy, QTextBrowser, QHBoxLayout, QVBoxLayout)
@@ -18,6 +19,7 @@ else:
 from src.controlm import validaciones
 from src.controlm.record import ControlRecorder
 from src.controlm.structures import ControlmFolder
+from src.controlm.constantes import DOCUMENTACION_VALIDADOR_URL
 
 
 class InterfazValidador(QMainWindow):
@@ -40,6 +42,13 @@ class InterfazValidador(QMainWindow):
         image = QPixmap(os.path.join(os.getcwd(), "src", "resources", "img", "im_bbva.png")).scaled(110, 40, Qt.AspectRatioMode.KeepAspectRatio)
         image_label = QLabel()
         image_label.setPixmap(image)
+
+        image_help = QPixmap(os.path.join(os.getcwd(), "src", "resources", "img", "help.png")).scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio)
+        image_label_help = QLabel()
+        image_label_help.setPixmap(image_help)
+        image_label_help.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        image_label_help.setToolTip('Documentación de la aplicación')
+        image_label_help.mousePressEvent = self.open_docs
 
         # Etiqueta de pie de página
         reli_label = QLabel("By Reliability Argentina")
@@ -99,7 +108,8 @@ class InterfazValidador(QMainWindow):
         spacer_horizontal = QSpacerItem(0, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         # Grid config
-        self.grid_layout.addWidget(image_label, 0, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.grid_layout.addWidget(image_label, 0, 0, 1, 1, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.grid_layout.addWidget(image_label_help, 0, 1, 1, 1, alignment=Qt.AlignmentFlag.AlignRight)
         self.grid_layout.addWidget(title_label, 0, 0, 2, 2, alignment=Qt.AlignmentFlag.AlignCenter)
         self.grid_layout.addWidget(self.folder_label, 2, 0, 1, 1, alignment=Qt.AlignmentFlag.AlignRight)
         self.grid_layout.addWidget(attachment_button, 2, 1, 1, 1, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -124,8 +134,24 @@ class InterfazValidador(QMainWindow):
         msg_box.setWindowIcon(QIcon.fromTheme('dialog-information'))
         msg_box.exec()
 
+    @staticmethod
+    def open_docs(event):
+        docs_message_box = QMessageBox()
+        docs_message_box.setWindowTitle('Aviso')
+        docs_message_box.setIcon(QMessageBox.Icon.Information)
+        docs_message_box.setWindowIcon(QIcon.fromTheme('dialog-information'))
+        docs_message_box.setText("Se procederá a abrir el navegador para acceder a la documentación")
+        docs_message_box.setInformativeText("¿Desea continuar?")
+        docs_message_box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+        docs_message_box.setDefaultButton(QMessageBox.StandardButton.Ok)
+        ret = docs_message_box.exec()
+        if ret == QMessageBox.StandardButton.Ok:
+            webbrowser.open(DOCUMENTACION_VALIDADOR_URL)
+        else:
+            return
+
     def add_attachment(self):
-        file_path = QFileDialog.getOpenFileName(self, self.tr("Open Image"), os.getcwd(), self.tr("XML Files (*.xml)"))[0]
+        file_path = QFileDialog.getOpenFileName(self, caption=self.tr("Seleccione la malla"), dir=os.getcwd(), filter=self.tr("XML Files (*.xml)"))[0]
         if file_path:
             self.folder_label.setText(f"Malla seleccionada: {Path(file_path).name}")
             self.folder_label.setStyleSheet("color: black; font: 15px Arial; background: white; padding-left: 3px;")

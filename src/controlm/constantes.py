@@ -126,3 +126,5 @@ VARIABLES_NO_PERMITIDAS = [
     'RJULDAY',
     'WDAY'
 ]
+
+DOCUMENTACION_VALIDADOR_URL = 'https://docs.google.com/document/d/1GDNQf1aOZrfZfQm70cF0abeJX4FGS70NVKDIayMB6g4/edit?usp=sharing'
