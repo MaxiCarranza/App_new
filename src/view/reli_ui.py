@@ -90,6 +90,7 @@ class InterfazValidador(QMainWindow):
 
         self.validation_textbox = QTextEdit(self)
         self.validation_textbox.setReadOnly(True)
+        self.validation_textbox.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard)
         self.validation_textbox.setPlaceholderText("Seleccione una malla para validar")
         self.validation_textbox.setStyleSheet(
             "color: #333333; background-color: #F0F8FF; font: 13px;"

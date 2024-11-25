@@ -26,20 +26,27 @@ def excepthook(exc_type, exc_value, exc_tb):
     import traceback
     import logging
 
-    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    raw_tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
 
-    if getattr(sys, 'frozen', False):  # huh ?
+    dev_path = str(Path(__file__).parent)
+    runtime_path = str(Path(sys.executable).parent)
+
+    processed_tb = raw_tb.replace(dev_path, "<dev_path>").replace(runtime_path, "<runtime_path>")
+
+    if getattr(sys, 'frozen', False):  # If running as a frozen application
         log_dir = Path(sys.executable).parent
     else:
         log_dir = Path(__file__).parent
 
     error_log_path = log_dir / 'error_info.log'
-
-    logging.basicConfig(filename=error_log_path, level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)s %(name)s %(message)s',
-                        filemode='w')
+    logging.basicConfig(
+        filename=error_log_path,
+        level=logging.DEBUG,
+        format='%(asctime)s %(levelname)s %(name)s %(message)s',
+        filemode='w'
+    )
     logger = logging.getLogger(__name__)
-    logger.error(tb)
+    logger.error(processed_tb)
 
     if not QApplication.instance():
         logger.error("QApplication instance not found!")
