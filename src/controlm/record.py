@@ -33,37 +33,39 @@ class Recorder:
         except KeyError:
             self.info[key] = [item]
 
-    def add_inicial(self, mensaje: str, tipo: str):
+    def add_inicial(self, mensaje: str, tipo: str = 'I'):
         """
         Agrega items iniciales al log, son los primeros que se muestran
 
         :param mensaje: String que repesenta el item a ser agregado, no utilizar \n ya que se lo agrega aca
+        :param tipo:
         """
         self._add_or_append_dict_item(self.INI_KEY, (mensaje, None, tipo))
 
-    def add_general(self, mensaje: str, tipo: str):
+    def add_general(self, mensaje: str, tipo: str = 'I'):
         """
         Agrega item general al log, utilizarlos para items que no son puntuales a ningun job pero si a nivel malla.
         Va inmediatamente despues del INICIAL
 
         :param mensaje: String que repesenta el item a ser agregado
+        :param tipo:
         """
         self._add_or_append_dict_item(self.GEN_KEY, (mensaje, None, tipo))
 
-    def add_item(self, key: str, mensaje: str, tipo: str):
+    def add_item(self, key: str, mensaje: str, tipo: str = 'I'):
         """
         Agrega un ítem asociado a una key, que en este caso es un jobname
 
         :param key: Key que agrupara todos los items
         :param mensaje: Item a ser agregado
-        :param tipo: TODO: Completar
+        :param tipo:
         """
         if key in [Recorder.INI_KEY, Recorder.GEN_KEY]:
             raise KeyError(f"No se puede agregar un item cuya key está dentro de las no permitidas {[Recorder.INI_KEY, Recorder.GEN_KEY]}")
         else:
             self._add_or_append_dict_item(key, (mensaje, None, tipo))
 
-    def add_listado(self, key: str, mensaje: str, elementos: [set, list], tipo: str):
+    def add_listado(self, key: str, mensaje: str, elementos: [set, list], tipo: str = 'I'):
         """
         Agrega un listado a una key y lo formatea acorde.
         Ej: Si nos viene [A, B, C] con un mensaje 'Los siguientes id fallaron' con una key 'key_emjeplo', se formateara
@@ -101,6 +103,9 @@ class DiffRecorder(Recorder):
     TODO: Con el ultimo refactor de la clase padre se va a romper, arreglar
     """
 
+    def _hay_diferencias(self):
+        return len(self.info.keys()) > 1
+
     def add_diff(self, key: str, mensaje: str, work_val: str, live_val: str):
         """
         Agrega al listado de diferencias un valor que se modificó asociado a una key
@@ -111,10 +116,7 @@ class DiffRecorder(Recorder):
         :param live_val: Valor de work, diferente al productivo
         """
         item = f"\t{mensaje}\n\t\tACTUAL:[{live_val}]\n\t\tNUEVO: [{work_val}]\n"
-        try:
-            self.info[key].append(item)
-        except KeyError:
-            self.info[key] = [item]
+        self._add_or_append_dict_item(key, (mensaje + item, None, 'I'))
 
     def write_log(self, filename: str, info_extra: dict):
         """
@@ -125,31 +127,47 @@ class DiffRecorder(Recorder):
         """
 
         jobnames_rc = info_extra['jobnames_ruta_critica']
+        final_str = ""
+        info = deepcopy(self.info)
+
+        item_ini_list: list | None = info.pop(self.INI_KEY, None)
+        if item_ini_list is not None:
+            for item in item_ini_list:
+                final_str += f'{item[0]}\n'
+        final_str += '\n'
+
+        if not self._hay_diferencias():
+            final_str += f'No se encontraron diferencias en la malla.\n'
+            return final_str
+
+        item_gen_list: list | None = info.pop(self.GEN_KEY, None)
+        if item_gen_list is not None:
+            final_str += f'{self.GEN_KEY}\n'
+            for item in item_gen_list:
+                if item[1] is None:
+                    final_str += f'\t{item[0]}\n'
+                else:
+                    final_str += f'\t{item[0]}\n'
+                    for sub_item in item[1]:
+                        final_str += f'\t\t{sub_item}\n'
+        final_str += '\n'
+
+        for jobname, item_list in info.items():
+            rc_str = " - (RUTA CRITICA)" if jobname in jobnames_rc else ""
+            final_str += f'{jobname}{rc_str}\n'
+            for item in item_list:
+                if item[1] is None:
+                    clasif_str = f"[{self._get_desc_tipo(item[2])}]: "
+                    final_str += f'\t{clasif_str}{item[0]}\n'
+                else:
+                    clasif_str = f"[{self._get_desc_tipo(item[2])}]: "
+                    final_str += f'\t{clasif_str}{item[0]}\n'
+                    for sub_item in item[1]:
+                        final_str += f'\t\t{sub_item}\n'
+            final_str += '\n'
 
         with open(filename, 'w', encoding='UTF-8') as file:
-
-            items_iniciales = self.info.pop('INICIAL')
-            for item in items_iniciales:
-                file.write(item)
-
-            items_generales = self.info.pop('GENERAL')
-            if len(items_generales) > 0:
-                file.write(f"\nGENERAL\n")
-                for item in items_generales:
-                    file.write(item)
-
-            value: list | str
-            for key, value in self.info.items():
-                rc_str = " - (RUTA CRITICA)" if key in jobnames_rc else ""
-                file.write(f"\n{key}{rc_str}\n")
-                if isinstance(value, list):
-                    for v in value:
-                        file.write(v)
-                else:
-                    file.write(value)
-
-            if len(self.info) == 0:
-                file.write("\nNo se detectaron diferencias puntuales en los jobs\n")
+            file.write(final_str)
 
 
 class ControlRecorder(Recorder):

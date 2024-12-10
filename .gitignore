@@ -166,3 +166,4 @@ cython_debug/
 *.xml
 *.zip
 *.7z
+mallas*/
