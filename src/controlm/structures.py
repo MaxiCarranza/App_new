@@ -73,6 +73,8 @@ class ControlmFolder:
         """
         # TODO: Migrar atributos a propiedades
 
+        self.filename = None
+
         if isinstance(xml_input, str):
 
             self.filename = xml_input

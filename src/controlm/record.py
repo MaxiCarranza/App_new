@@ -6,7 +6,19 @@ from copy import deepcopy
 
 class Recorder:
     """
-    Clase que se encarga de logear todos los controles / diferencias que se encuentren entre los dos xml
+    Clase que se encarga de logear todos los controles / diferencias que se encuentren entre los dos xml.
+    La estructura de un item perteneciente a un 'record' tiene la siguiente estructura:
+
+    key: (mensaje, [listado] | None, tipo)
+
+    donde
+        key: Llave única en donde se 'agruparán' los distintos items (mensajes formateados)
+        mensaje: String que representa un mensaje notable (ej: El job tiene mal la descripción)
+        listado: Lista de strings en el caso de que se deba formatear una lista bajo esa keu
+        tipo: Similar a un logger, el tipo indica el 'nivel' de prioridad del item. Los tipos estan definidos en la clase
+
+    La idea del Recorder es juntar en el atributo info
+
     """
 
     INI_KEY = 'INICIAL'
@@ -99,11 +111,13 @@ class Recorder:
 
 class DiffRecorder(Recorder):
     """
-    Registra todas las diferencias encontradas por el proceso en un .log
-    TODO: Con el ultimo refactor de la clase padre se va a romper, arreglar
+    Registra todas las diferencias encontradas por el proceso en un .log.
     """
 
     def _hay_diferencias(self):
+        """
+        Verifica si hay items en el diccionario de info.
+        """
         return len(self.info.keys()) > 1
 
     def add_diff(self, key: str, mensaje: str, work_val: str, live_val: str):

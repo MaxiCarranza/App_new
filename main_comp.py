@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from pathlib import Path
@@ -17,7 +18,9 @@ class FolderComparisonApp:
     def __init__(self, root_app: tk.Tk):
         self.root = root_app
         self.root.title("Comparador de mallas")
-        self.root.geometry("400x250")
+        self.root.geometry("400x260")
+        self.root.resizable(False, False)
+        self.root.iconbitmap(os.path.join("src", "resources", "img", "bbva.ico"))
 
         self.path_foder1 = None
         self.path_foder2 = None
@@ -109,21 +112,18 @@ class FolderComparisonApp:
             'jobnames_ruta_critica': []
         }
 
-        diff_record.add_inicial(f"Fecha de generación [{datetime.now()}]", 'I')
-        diff_record.add_inicial(f"Malla analizada [{malla_work.name}]", 'I')
-        diff_record.add_inicial(f"UUAA: {malla_work.uuaa}", 'I')
-        diff_record.add_inicial(f"Periodicidad: {malla_work.periodicidad}", 'I')
-        diff_record.add_inicial(
-            f"Cantidad jobs {malla_work.name}: {len(malla_work.jobs())}", 'I')
-        diff_record.add_inicial(f"Cantidad jobs: {len(malla_live.jobs())}", 'I')
-        diff_record.add_inicial('-' * 70, 'I')
-        if jobnames_nuevos:
-            diff_record.add_general(f"Jobnames nuevos: \n\t{jobnames_nuevos}", 'I')
+        diff_record.add_inicial(f"Fecha de generación [{datetime.now()}]")
+        diff_record.add_inicial(f"Malla 1 analizada [{malla_live.filename}]")
+        diff_record.add_inicial(f"Malla 2 analizada [{malla_work.filename}]")
+        diff_record.add_inicial(f"Cantidad jobs {malla_live.name}: {len(malla_live.jobs())}")
+        diff_record.add_inicial(f"Cantidad jobs {malla_work.name}: {len(malla_work.jobs())}")
+        diff_record.add_inicial('-' * 70)
 
         directory = filedialog.askdirectory(title="Seleccione un directorio para guardar el archivo .log")
-        final_path = Path(directory) / f'DIFERENCIAS_{malla_work.name}.log'
-        diff_record.write_log(str(final_path.absolute()), informacion_extra_recorders)
-        tk.messagebox.showinfo(title="Archivo generado con exito", message=f"Se ha generado el archivo en {str(final_path.absolute())}")
+        if directory:
+            final_path = Path(directory) / f'DIFERENCIAS_{malla_work.name}.log'
+            diff_record.write_log(str(final_path.absolute()), informacion_extra_recorders)
+            tk.messagebox.showinfo(title="Archivo generado con exito", message=f"Se ha generado el archivo en {str(final_path.absolute())}")
 
 
 if __name__ == '__main__':

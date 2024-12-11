@@ -192,7 +192,7 @@ def acciones(workjob: ControlmJob, livejob: ControlmJob, dr: DiffRecorder):
 
     Incrementar este contador en 1 cada vez que se intente encarar este método y se falle espectacularmente en
     dejarlo funcionando al 100% sin bugs ni cosas raras
-    contador_frustaciones = 14
+    contador_frustaciones = 15
     """
 
     sep = "-" * 97  # Separador
@@ -230,7 +230,7 @@ def acciones(workjob: ControlmJob, livejob: ControlmJob, dr: DiffRecorder):
         :param direc:
         :return: Recorder encargado de contener la info nueva para luego logearla
         """
-        tabla = [sep, "{:^97}".format(f"ACCION NUEVA: [{accion_nueva.id}]"), sep]
+        tabla = [sep, "{:^97}".format(f"ACCION NUEVA: [{accion_nueva.traducir_id()}]"), sep]
 
         for key, value in accion_nueva.attrs.items():
             tabla.append("{:^48}|{:^48}".format(key, utils.oofstr(value)))
@@ -268,11 +268,11 @@ def acciones(workjob: ControlmJob, livejob: ControlmJob, dr: DiffRecorder):
                     try:
                         lvalue = l_action.attrs[wkey]
                     except KeyError:
-                        mensaje = f"Se agregó el atributo [{wkey}], VALOR: [{wvalue}] para la accion [{w_action.id}] bajo la condicion [{work_condition}]"
+                        mensaje = f"Se agregó el atributo [{wkey}], VALOR: [{wvalue}] para la accion [{w_action.traducir_id()}] bajo la condicion [{work_condition}]"
                         dr.add_item(workjob.name, mensaje)
                     else:
                         if lvalue != wvalue:
-                            mensaje = f"Se modificó el atributo [{wkey}] para la accion [{w_action.id}] bajo la condicion [{work_condition}]"
+                            mensaje = f"Se modificó el atributo [{wkey}] para la accion [{w_action.traducir_id()}] bajo la condicion [{work_condition}]"
                             dr.add_diff(workjob.name, mensaje, wvalue, lvalue)
                 # Al haber informado(o no) las diferencias con la accion de work y su contraparte de live, no hay
                 # que hacer más análisis. Pasar a la siguiente accion
