@@ -1,4 +1,5 @@
 import os
+import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from pathlib import Path
@@ -10,13 +11,27 @@ from src.controlm.diferencia import DiffRecorder
 from src.controlm.structures import ControlmFolder
 
 
+def tk_excepthook(exc_type, exc_value, exc_tb):
+
+    error_root = tk.Tk()
+    error_root.withdraw()  # Hide the main Tkinter window
+
+    msg = (f"Se ha encontrado un error inesperado:\n\n{repr(exc_value)}\n\n"
+           f"De ser necesario, por favor ponerse en contacto con ar-data-hub-solutions.group@bbva.com ")
+    messagebox.showerror("Error inesperado", msg)
+
+    error_root.quit()
+
+
 class FolderComparisonApp:
 
     DEFAULT_TEXT_1 = "Malla 1: "
     DEFAULT_TEXT_2 = "Malla 2: "
 
     def __init__(self, root_app: tk.Tk):
+
         self.root = root_app
+        self.root.report_callback_exception = tk_excepthook
         self.root.title("Comparador de mallas")
         self.root.geometry("400x260")
         self.root.resizable(False, False)
@@ -126,7 +141,15 @@ class FolderComparisonApp:
             tk.messagebox.showinfo(title="Archivo generado con exito", message=f"Se ha generado el archivo en {str(final_path.absolute())}")
 
 
-if __name__ == '__main__':
+def main():
+    sys.excepthook = tk_excepthook
     root = tk.Tk()
-    app = FolderComparisonApp(root)
+    FolderComparisonApp(root)
     root.mainloop()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        tk_excepthook(type(e), e, e.__traceback__)

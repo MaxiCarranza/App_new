@@ -129,8 +129,8 @@ class DiffRecorder(Recorder):
         :param work_val: Valor productivo
         :param live_val: Valor de work, diferente al productivo
         """
-        item = f"\t{mensaje}\n\t\tACTUAL:[{live_val}]\n\t\tNUEVO: [{work_val}]\n"
-        self._add_or_append_dict_item(key, (mensaje + item, None, 'I'))
+        item = f"{mensaje}\n\t\tACTUAL:[{live_val}]\n\t\tNUEVO: [{work_val}]\n"
+        self._add_or_append_dict_item(key, (item, None, 'I'))
 
     def write_log(self, filename: str, info_extra: dict):
         """
